@@ -3,6 +3,7 @@ export interface CategoryDto {
   name: string;
   slug: string;
   description: string | null;
+  imageUrl: string | null;
   recipeCount: number;
 }
 
