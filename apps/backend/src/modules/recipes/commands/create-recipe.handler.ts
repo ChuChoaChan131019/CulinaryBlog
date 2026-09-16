@@ -16,60 +16,20 @@ import {
   recipes,
   recipeSteps,
 } from '../../../infrastructure/database/schema';
+import { RecipeDto } from '../dto/recipe.dto';
 import { CreateRecipeCommand } from './create-recipe.command';
-
-export interface CreateRecipeResult {
-  id: string;
-  title: string;
-  slug: string;
-  description: string;
-  instructions: string;
-  prepTime: number;
-  cookTime: number;
-  servings: number;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  status: 'Draft';
-  categoryId: string;
-  authorId: string;
-  nutrition: {
-    calories: string | null;
-    protein: string | null;
-    carbohydrates: string | null;
-    fat: string | null;
-    fiber: string | null;
-    sodium: string | null;
-  };
-  steps: Array<{
-    id: string;
-    stepNumber: number;
-    title: string;
-    description: string;
-    timerMinutes: number | null;
-    imageUrl: string | null;
-  }>;
-  ingredients: Array<{
-    id: string;
-    name: string;
-    quantity: string | null;
-    unit: string | null;
-    notes: string | null;
-    orderIndex: number;
-  }>;
-  createdAt: Date;
-  updatedAt: Date | null;
-}
 
 @CommandHandler(CreateRecipeCommand)
 export class CreateRecipeHandler implements ICommandHandler<
   CreateRecipeCommand,
-  CreateRecipeResult
+  RecipeDto
 > {
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: Database,
     private readonly cache: CacheService,
   ) {}
 
-  async execute(command: CreateRecipeCommand): Promise<CreateRecipeResult> {
+  async execute(command: CreateRecipeCommand): Promise<RecipeDto> {
     const [category] = await this.db
       .select({ id: categories.id })
       .from(categories)
