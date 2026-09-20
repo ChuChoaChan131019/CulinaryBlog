@@ -40,6 +40,19 @@ export class CacheService implements OnModuleDestroy {
 
   async delete(key: string): Promise<void> {
     try {
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await this.redis.scan(
+          cursor,
+          'MATCH',
+          `${key}:*`,
+          'COUNT',
+          100,
+        );
+        cursor = nextCursor;
+        if (keys.length > 0) await this.redis.unlink(...keys);
+      } while (cursor !== '0');
+
       await this.redis.del(key);
     } catch {
       // Cache is an optimization; the source of truth remains PostgreSQL.

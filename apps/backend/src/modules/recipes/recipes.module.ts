@@ -3,9 +3,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateRecipeHandler } from './commands/create-recipe.handler';
 import { RecipesController } from './recipes.controller';
+import { GetRecipesHandler } from './queries/get-recipes.handler';
 
 @Module({
   imports: [
@@ -19,6 +21,12 @@ import { RecipesController } from './recipes.controller';
     }),
   ],
   controllers: [RecipesController],
-  providers: [CreateRecipeHandler, JwtAuthGuard, RolesGuard],
+  providers: [
+    CreateRecipeHandler,
+    GetRecipesHandler,
+    JwtAuthGuard,
+    OptionalJwtAuthGuard,
+    RolesGuard,
+  ],
 })
 export class RecipesModule {}

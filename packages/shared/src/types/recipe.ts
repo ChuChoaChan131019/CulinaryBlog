@@ -38,7 +38,7 @@ export interface RecipeSummaryDto {
   cookTimeMinutes: number;
   servings: number;
   author: Pick<UserProfileDto, 'id' | 'displayName' | 'avatarUrl'>;
-  categories: CategoryDto[];
+  category: Pick<CategoryDto, 'id' | 'name' | 'slug'>;
   publishedAt: string | null;
   createdAt: string;
 }
