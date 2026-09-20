@@ -6,6 +6,7 @@ import { CacheModule } from './infrastructure/cache/cache.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { MediaModule } from './modules/media/media.module';
 import { RecipesModule } from './modules/recipes/recipes.module';
 
 @Module({
@@ -16,6 +17,7 @@ import { RecipesModule } from './modules/recipes/recipes.module';
     AuthModule,
     CategoriesModule,
     RecipesModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
