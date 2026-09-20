@@ -38,6 +38,14 @@ export class CacheService implements OnModuleDestroy {
     }
   }
 
+  async delete(key: string): Promise<void> {
+    try {
+      await this.redis.del(key);
+    } catch {
+      // Cache is an optimization; the source of truth remains PostgreSQL.
+    }
+  }
+
   onModuleDestroy(): void {
     this.redis.disconnect();
   }
