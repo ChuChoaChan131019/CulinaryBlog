@@ -1,7 +1,1 @@
-export class RegisterCommand {
-  constructor(
-    public readonly email: string,
-    public readonly password: string,
-    public readonly displayName: string,
-  ) {}
-}
+export { RegisterCommand } from '../../../application/auth/register.command';

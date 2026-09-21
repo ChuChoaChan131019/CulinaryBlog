@@ -1,1 +1,1 @@
-export class GetCategoriesQuery {}
+export { GetCategoriesQuery } from '../../../application/categories/get-categories.query';

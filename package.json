@@ -13,6 +13,8 @@
     "typecheck": "pnpm -r typecheck",
     "db:generate": "pnpm --filter backend db:generate",
     "db:migrate": "pnpm --filter backend db:migrate",
+    "db:seed": "pnpm --filter backend db:seed",
+    "db:verify": "pnpm --filter backend db:verify",
     "docker:up": "docker compose up -d --build",
     "docker:down": "docker compose down"
   }
