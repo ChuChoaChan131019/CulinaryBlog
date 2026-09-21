@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
+import { RECIPE_REPOSITORY } from '../../application/recipes/recipe.repository';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { DrizzleRecipeRepository } from '../../infrastructure/database/repositories/drizzle-recipe.repository';
 import { CreateRecipeHandler } from './commands/create-recipe.handler';
 import { RecipesController } from './recipes.controller';
 import { GetRecipesHandler } from './queries/get-recipes.handler';
@@ -24,6 +26,8 @@ import { GetRecipesHandler } from './queries/get-recipes.handler';
   providers: [
     CreateRecipeHandler,
     GetRecipesHandler,
+    DrizzleRecipeRepository,
+    { provide: RECIPE_REPOSITORY, useExisting: DrizzleRecipeRepository },
     JwtAuthGuard,
     OptionalJwtAuthGuard,
     RolesGuard,
