@@ -10,6 +10,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PagedResult, RecipeSummaryDto } from '@culinary/shared';
 import { AuthenticatedUser } from '../../common/auth/authenticated-user';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -26,6 +27,7 @@ import {
 } from './dto/get-recipes-query.dto';
 import { GetRecipesQuery } from './queries/get-recipes.query';
 
+@ApiTags('recipes')
 @Controller('recipes')
 export class RecipesController {
   constructor(
@@ -54,6 +56,7 @@ export class RecipesController {
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Author', 'Admin')
+  @ApiBearerAuth()
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateRecipeDto,
