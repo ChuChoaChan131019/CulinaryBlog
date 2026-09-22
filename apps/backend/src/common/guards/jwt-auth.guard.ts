@@ -37,33 +37,33 @@ export class JwtAuthGuard implements CanActivate {
 
     if (scheme !== 'Bearer' || !token) throw new UnauthorizedException();
 
+    const secret = this.config.getOrThrow<string>('JWT_ACCESS_SECRET');
+    let payload: AccessTokenPayload;
     try {
-      const payload = await this.jwtService.verifyAsync<AccessTokenPayload>(
-        token,
-        {
-          secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
-        },
-      );
-      const userId = payload.sub ?? payload.userId;
-      if (!userId) throw new UnauthorizedException();
-
-      const [user] = await this.db
-        .select({ id: users.id, email: users.email, role: users.role })
-        .from(users)
-        .where(
-          and(
-            eq(users.id, userId),
-            eq(users.isActive, true),
-            eq(users.isDeleted, false),
-          ),
-        )
-        .limit(1);
-
-      if (!user) throw new UnauthorizedException();
-      request.user = user;
-      return true;
+      payload = await this.jwtService.verifyAsync<AccessTokenPayload>(token, {
+        secret,
+      });
     } catch {
       throw new UnauthorizedException();
     }
+
+    const userId = payload.sub ?? payload.userId;
+    if (!userId) throw new UnauthorizedException();
+
+    const [user] = await this.db
+      .select({ id: users.id, email: users.email, role: users.role })
+      .from(users)
+      .where(
+        and(
+          eq(users.id, userId),
+          eq(users.isActive, true),
+          eq(users.isDeleted, false),
+        ),
+      )
+      .limit(1);
+
+    if (!user) throw new UnauthorizedException();
+    request.user = user;
+    return true;
   }
 }

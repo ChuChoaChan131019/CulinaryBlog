@@ -12,12 +12,12 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "strictPropertyInitialization": false,
-    "types": ["node", "jest"],
+    "types": ["node", "jest", "multer"],
     "paths": {
       "@culinary/shared": ["../../packages/shared/src/index.ts"],
       "src/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

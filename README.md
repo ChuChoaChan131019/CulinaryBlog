@@ -49,7 +49,24 @@ pnpm docker:down
 | `pnpm typecheck` | Typecheck toàn workspace |
 | `pnpm db:generate` | Sinh migration Drizzle |
 | `pnpm db:migrate` | Chạy migration |
+| `pnpm db:seed` | Tạo dữ liệu mẫu lab 2, có thể chạy lại mà không tạo bản ghi trùng |
+| `pnpm db:verify` | Truy vấn database để kiểm tra số lượng và số recipe thiếu nguyên liệu/bước |
 | `pnpm --filter backend test` | Unit test backend |
+
+### Dữ liệu mẫu lab 2
+
+Từ thư mục gốc, chạy trong PowerShell (thay thông tin kết nối nếu bạn đã đổi `.env`):
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up -d postgres
+$env:DATABASE_URL = 'postgresql://culinary:culinary_dev_password@localhost:5432/culinary_blog'
+pnpm db:migrate
+pnpm db:seed
+pnpm db:verify
+```
+
+Script seed tạo một tác giả mẫu (không có mật khẩu đăng nhập), 20 danh mục và 100 công thức; mỗi công thức có 10–12 nguyên liệu và 5–7 bước. Các bản ghi mẫu có slug bắt đầu bằng `lab2-`; chạy lại chỉ thêm bản ghi còn thiếu, không sửa hoặc xóa dữ liệu có sẵn. `db:verify` truy vấn số danh mục, số công thức và số công thức có dưới 10 nguyên liệu hoặc dưới 5 bước. Nếu `DATABASE_URL` trỏ tới PostgreSQL ở máy khác, đặt biến môi trường đó trước khi chạy ba lệnh `db:*`.
 
 ## Cấu trúc
 
