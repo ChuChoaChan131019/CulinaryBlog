@@ -1,14 +1,23 @@
-# Backend architecture
+# Backend
 
-The backend follows the four layers described in `Docs/SRS.md`:
+Backend NestJS được tổ chức theo khối tính năng:
 
-| Layer | Location | Responsibility |
-| --- | --- | --- |
-| Domain | `src/domain` | User, category and recipe types plus slug rules without NestJS or database imports |
-| Application | `src/application` | CQRS handlers, upload validation and repository/cache/storage interfaces |
-| Infrastructure | `src/infrastructure` | Drizzle repositories, transactions, Argon2, Redis and MinIO |
-| Presentation | `src/modules`, `src/common/guards` | HTTP controllers, validation DTOs, guards and Nest module wiring |
+| Thư mục | Nội dung |
+| --- | --- |
+| `src/modules/auth` | Đăng ký và xác thực người dùng |
+| `src/modules/categories` | Danh mục công thức |
+| `src/modules/recipes` | Tạo và xem danh sách công thức |
+| `src/modules/media` | Upload và lưu trữ tệp |
+| `src/infrastructure` | Kết nối database, schema, migration, cache và storage |
+| `src/common` | Guard, decorator và thành phần dùng chung |
 
-The controllers keep their existing `/categories`, `/recipes`, `/auth` and `/media` routes. Nest modules bind Application tokens to Infrastructure implementations. Existing paths under `src/modules` re-export moved classes so older imports remain valid.
+Handler của từng tính năng nằm trong `commands` hoặc `queries` của module tương ứng. Script tạo và kiểm tra dữ liệu mẫu nằm tại `scripts/seed.ts`; xem hướng dẫn chạy trong `README.md` ở thư mục gốc.
 
-From the workspace root, run `pnpm --filter backend typecheck`, `pnpm --filter backend test --runInBand`, and `pnpm --filter backend build`. Database seed and verification instructions are in the root `README.md`.
+Từ thư mục gốc, kiểm tra backend bằng:
+
+```bash
+pnpm --filter backend typecheck
+pnpm --filter backend lint
+pnpm --filter backend exec jest --runInBand
+pnpm --filter backend build
+```
