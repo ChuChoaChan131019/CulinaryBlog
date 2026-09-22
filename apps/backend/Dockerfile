@@ -26,4 +26,4 @@ COPY --from=build /repo/apps/backend/dist ./apps/backend/dist
 COPY --from=build /repo/apps/backend/package.json ./apps/backend/
 WORKDIR /repo/apps/backend
 EXPOSE 5000
-CMD ["node", "dist/main"]
+CMD ["node", "dist/apps/backend/src/main"]
