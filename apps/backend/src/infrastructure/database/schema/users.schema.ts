@@ -1,4 +1,4 @@
-import { boolean, pgEnum, pgTable, text, varchar } from 'drizzle-orm/pg-core';
+import { boolean, integer, pgEnum, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 import { baseColumns } from './base.columns';
 
 export const userRoleEnum = pgEnum('user_role', ['Author', 'Admin']);
@@ -13,6 +13,9 @@ export const users = pgTable('users', {
   bio: text('bio'),
   role: userRoleEnum('role').notNull().default('Author'),
   isActive: boolean('is_active').notNull().default(true),
+  // FR-AUTH-002: khóa tài khoản 15 phút sau 5 lần đăng nhập sai liên tiếp.
+  failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
 });
 
 export type User = typeof users.$inferSelect;

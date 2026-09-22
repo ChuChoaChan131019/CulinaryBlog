@@ -15,6 +15,13 @@
       "when": 1789570506801,
       "tag": "0001_add_recipe_creation",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790103677469,
+      "tag": "0002_aromatic_iron_fist",
+      "breakpoints": true
     }
   ]
 }
