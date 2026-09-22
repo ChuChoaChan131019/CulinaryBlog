@@ -16,7 +16,10 @@ export class MinioFileStorageService implements IFileStorageService, OnModuleIni
     this.client = new S3Client({
       endpoint: config.getOrThrow<string>('S3_ENDPOINT'),
       region: config.get<string>('S3_REGION', 'us-east-1'),
-      forcePathStyle: config.get<boolean>('S3_FORCE_PATH_STYLE', true),
+      // ConfigService không tự ép kiểu env string -> boolean, nên so sánh string tường minh
+      // (nếu không, forcePathStyle nhận string "true" thay vì boolean true và AWS SDK
+      // âm thầm fallback sang virtual-hosted-style addressing, gây lỗi PUT / trên MinIO).
+      forcePathStyle: config.get<string>('S3_FORCE_PATH_STYLE', 'true') === 'true',
       credentials: {
         accessKeyId: config.getOrThrow<string>('S3_ACCESS_KEY'),
         secretAccessKey: config.getOrThrow<string>('S3_SECRET_KEY'),
