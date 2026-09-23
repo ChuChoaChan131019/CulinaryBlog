@@ -142,6 +142,7 @@ export class CreateRecipeHandler implements ICommandHandler<
           },
           steps,
           ingredients,
+          rowVersion: created.rowVersion,
           createdAt: created.createdAt,
           updatedAt: created.updatedAt,
         };

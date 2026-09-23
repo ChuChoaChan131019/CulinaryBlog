@@ -35,12 +35,13 @@ export interface RecipeDto {
   cookTime: number;
   servings: number;
   difficulty: 'Easy' | 'Medium' | 'Hard';
-  status: 'Draft';
+  status: 'Draft' | 'Published' | 'Archived';
   categoryId: string;
   authorId: string;
   nutrition: RecipeNutritionResponseDto;
   steps: RecipeStepResponseDto[];
   ingredients: RecipeIngredientResponseDto[];
+  rowVersion: number;
   createdAt: Date;
   updatedAt: Date | null;
 }

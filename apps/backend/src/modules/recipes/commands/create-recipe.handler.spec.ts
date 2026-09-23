@@ -55,6 +55,7 @@ describe('CreateRecipeHandler', () => {
     nutritionFat: null,
     nutritionFiber: null,
     nutritionSodium: null,
+    rowVersion: 1,
     createdAt,
     updatedAt: null,
   };

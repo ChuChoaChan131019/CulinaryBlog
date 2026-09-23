@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateRecipeHandler } from './commands/create-recipe.handler';
+import { UpdateRecipeHandler } from './commands/update-recipe.handler';
 import { RecipesController } from './recipes.controller';
 import { GetRecipesHandler } from './queries/get-recipes.handler';
 
@@ -23,6 +24,7 @@ import { GetRecipesHandler } from './queries/get-recipes.handler';
   controllers: [RecipesController],
   providers: [
     CreateRecipeHandler,
+    UpdateRecipeHandler,
     GetRecipesHandler,
     JwtAuthGuard,
     OptionalJwtAuthGuard,
