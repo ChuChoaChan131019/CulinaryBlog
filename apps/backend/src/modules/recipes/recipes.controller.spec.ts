@@ -87,9 +87,11 @@ describe('RecipesController update', () => {
   it.each(['publish', 'unpublish'] as const)(
     'gửi command %s với recipe và người dùng hiện tại',
     async (action) => {
-      const { controller, commandBus } = buildController();
+      const { controller, commandBus, response } = buildController();
 
-      await expect(controller[action](recipeId, user)).resolves.toEqual(result);
+      await expect(
+        controller[action](recipeId, user, response as never),
+      ).resolves.toEqual(result);
       expect(commandBus.execute).toHaveBeenCalledWith(
         expect.objectContaining({ recipeId, user }),
       );
@@ -98,6 +100,9 @@ describe('RecipesController update', () => {
           ? 'PublishRecipeCommand'
           : 'UnpublishRecipeCommand',
       );
+      // Publish/unpublish tăng rowVersion nên phải trả ETag mới như PUT :id, không thì
+      // client giữ ETag cũ sẽ bị 409 oan ở lần ghi kế tiếp.
+      expect(response.setHeader).toHaveBeenCalledWith('ETag', '"4"');
     },
   );
 });
