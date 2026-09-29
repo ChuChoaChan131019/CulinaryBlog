@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -26,6 +27,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateRecipeCommand } from './commands/create-recipe.command';
+import { PublishRecipeCommand } from './commands/publish-recipe.command';
+import { UnpublishRecipeCommand } from './commands/unpublish-recipe.command';
 import { UpdateRecipeCommand } from './commands/update-recipe.command';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { RecipeDto } from './dto/recipe.dto';
@@ -86,6 +89,36 @@ export class RecipesController {
         dto.ingredients,
       ),
     );
+  }
+
+  @Patch(':id/publish')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  publish(
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<RecipeDto> {
+    return this.commandBus.execute(new PublishRecipeCommand(id, user));
+  }
+
+  @Patch(':id/unpublish')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  unpublish(
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<RecipeDto> {
+    return this.commandBus.execute(new UnpublishRecipeCommand(id, user));
   }
 
   @Put(':id')
