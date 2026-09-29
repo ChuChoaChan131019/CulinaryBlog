@@ -1,8 +1,10 @@
 import {
+  ConflictException,
   ForbiddenException,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import { CacheService } from '../../../infrastructure/cache/cache.service';
 import { RecipeStatusService } from './recipe-status.service';
 
@@ -61,7 +63,7 @@ describe('RecipeStatusService', () => {
 
   function setup(
     selectResults: unknown[][],
-    updated: RecipeRow = baseRecipe,
+    updated: RecipeRow | null = baseRecipe,
   ) {
     const results = [...selectResults];
     const select = jest.fn().mockImplementation(() => ({
@@ -72,9 +74,10 @@ describe('RecipeStatusService', () => {
         }),
       }),
     }));
-    const returning = jest.fn().mockResolvedValue([updated]);
+    const returning = jest.fn().mockResolvedValue(updated ? [updated] : []);
+    const updateWhere = jest.fn().mockReturnValue({ returning });
     const updateSet = jest.fn().mockReturnValue({
-      where: jest.fn().mockReturnValue({ returning }),
+      where: updateWhere,
     });
     const tx = {
       select,
@@ -93,6 +96,7 @@ describe('RecipeStatusService', () => {
       service: new RecipeStatusService(db as never, cache),
       tx,
       updateSet,
+      updateWhere,
       cache,
     };
   }
@@ -140,13 +144,19 @@ describe('RecipeStatusService', () => {
     expect(cache.delete).not.toHaveBeenCalled();
   });
 
-  it('unpublish Published về Draft và xóa publishedAt', async () => {
+  it('unpublish Published về Draft và giữ nguyên publishedAt', async () => {
+    const publishedAt = new Date('2026-09-01T10:00:00.000Z');
     const existing = {
       ...baseRecipe,
       status: 'Published' as const,
-      publishedAt: new Date(),
+      publishedAt,
     };
-    const updated = { ...baseRecipe, updatedAt: new Date(), rowVersion: 2 };
+    const updated = {
+      ...baseRecipe,
+      publishedAt,
+      updatedAt: new Date(),
+      rowVersion: 2,
+    };
     const { service, updateSet } = setup(
       [[existing], steps, ingredients],
       updated,
@@ -157,8 +167,97 @@ describe('RecipeStatusService', () => {
       rowVersion: 2,
     });
     expect(updateSet).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'Draft', publishedAt: null }),
+      expect.objectContaining({ status: 'Draft' }),
     );
+    expect(updateSet.mock.calls[0][0]).not.toHaveProperty('publishedAt');
+  });
+
+  it('publish lại giữ nguyên ngày xuất bản đầu tiên', async () => {
+    const publishedAt = new Date('2026-09-01T10:00:00.000Z');
+    const existing = { ...baseRecipe, publishedAt };
+    const published = {
+      ...existing,
+      status: 'Published' as const,
+      updatedAt: new Date(),
+      rowVersion: 2,
+    };
+    const { service, updateSet } = setup(
+      [[existing], [{ id: steps[0].id }], steps, ingredients],
+      published,
+    );
+
+    await expect(service.publish(recipeId, user)).resolves.toMatchObject({
+      status: 'Published',
+      rowVersion: 2,
+    });
+    expect(updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ publishedAt }),
+    );
+  });
+
+  it('chỉ update khi status vẫn khớp trạng thái đã đọc', async () => {
+    const published = {
+      ...baseRecipe,
+      status: 'Published' as const,
+      publishedAt: new Date(),
+      updatedAt: new Date(),
+      rowVersion: 2,
+    };
+    const { service, updateWhere } = setup(
+      [[baseRecipe], [{ id: steps[0].id }], steps, ingredients],
+      published,
+    );
+
+    await service.publish(recipeId, user);
+
+    const compiledWhere = new PgDialect().sqlToQuery(
+      updateWhere.mock.calls[0][0],
+    );
+    expect(compiledWhere.params).toEqual([recipeId, false, 'Draft']);
+  });
+
+  it('coi request thua race là no-op khi recipe đã ở target status', async () => {
+    const publishedAt = new Date('2026-09-01T10:00:00.000Z');
+    const current = {
+      ...baseRecipe,
+      status: 'Published' as const,
+      publishedAt,
+      updatedAt: new Date(),
+      rowVersion: 2,
+    };
+    const { service, cache } = setup(
+      [
+        [baseRecipe],
+        [{ id: steps[0].id }],
+        [current],
+        steps,
+        ingredients,
+      ],
+      null,
+    );
+
+    await expect(service.publish(recipeId, user)).resolves.toMatchObject({
+      status: 'Published',
+      rowVersion: 2,
+    });
+    expect(cache.delete).not.toHaveBeenCalled();
+  });
+
+  it('trả 409 khi recipe đổi trạng thái khác trong lúc update', async () => {
+    const { service, cache } = setup(
+      [[baseRecipe], [{ id: steps[0].id }], [baseRecipe]],
+      null,
+    );
+    const promise = service.publish(recipeId, user);
+
+    await expect(promise).rejects.toBeInstanceOf(ConflictException);
+    await expect(promise).rejects.toMatchObject({
+      response: expect.objectContaining({
+        type: 'RECIPE_CONCURRENCY_CONFLICT',
+        status: 409,
+      }),
+    });
+    expect(cache.delete).not.toHaveBeenCalled();
   });
 
   it.each([

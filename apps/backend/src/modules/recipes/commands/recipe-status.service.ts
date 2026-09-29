@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -105,24 +106,43 @@ export class RecipeStatusService {
           .update(recipes)
           .set({
             status: targetStatus,
-            publishedAt: targetStatus === 'Published' ? new Date() : null,
+            ...(targetStatus === 'Published' && {
+              publishedAt: existing.publishedAt ?? new Date(),
+            }),
             updatedAt: new Date(),
             rowVersion: sql`${recipes.rowVersion} + 1`,
           })
-          .where(and(eq(recipes.id, recipeId), eq(recipes.isDeleted, false)))
+          .where(
+            and(
+              eq(recipes.id, recipeId),
+              eq(recipes.isDeleted, false),
+              eq(recipes.status, existing.status),
+            ),
+          )
           .returning();
 
         if (!updated) {
-          throw new NotFoundException({
-            type: 'RECIPE_NOT_FOUND',
-            title: 'Không tìm thấy công thức',
-            status: 404,
-            detail: 'Công thức không tồn tại hoặc đã bị xóa',
-          });
-        }
+          const [current] = await tx
+            .select()
+            .from(recipes)
+            .where(and(eq(recipes.id, recipeId), eq(recipes.isDeleted, false)))
+            .limit(1);
 
-        recipe = updated;
-        changed = true;
+          if (current?.status === targetStatus) {
+            recipe = current;
+          } else {
+            throw new ConflictException({
+              type: 'RECIPE_CONCURRENCY_CONFLICT',
+              title: 'Xung đột cập nhật trạng thái công thức',
+              status: 409,
+              detail:
+                'Trạng thái công thức đã được cập nhật bởi yêu cầu khác; hãy tải lại dữ liệu',
+            });
+          }
+        } else {
+          recipe = updated;
+          changed = true;
+        }
       }
 
       const [steps, ingredients] = await Promise.all([
