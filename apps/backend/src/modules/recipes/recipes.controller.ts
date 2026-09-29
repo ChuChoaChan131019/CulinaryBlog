@@ -95,30 +95,44 @@ export class RecipesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
-  publish(
+  async publish(
     @Param(
       'id',
       new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
     )
     id: string,
     @CurrentUser() user: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
   ): Promise<RecipeDto> {
-    return this.commandBus.execute(new PublishRecipeCommand(id, user));
+    const result = await this.commandBus.execute<
+      PublishRecipeCommand,
+      RecipeDto
+    >(new PublishRecipeCommand(id, user));
+
+    response.setHeader('ETag', `"${result.rowVersion}"`);
+    return result;
   }
 
   @Patch(':id/unpublish')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
-  unpublish(
+  async unpublish(
     @Param(
       'id',
       new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
     )
     id: string,
     @CurrentUser() user: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
   ): Promise<RecipeDto> {
-    return this.commandBus.execute(new UnpublishRecipeCommand(id, user));
+    const result = await this.commandBus.execute<
+      UnpublishRecipeCommand,
+      RecipeDto
+    >(new UnpublishRecipeCommand(id, user));
+
+    response.setHeader('ETag', `"${result.rowVersion}"`);
+    return result;
   }
 
   @Put(':id')
