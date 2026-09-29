@@ -83,4 +83,21 @@ describe('RecipesController update', () => {
       expect(commandBus.execute).not.toHaveBeenCalled();
     },
   );
+
+  it.each(['publish', 'unpublish'] as const)(
+    'gửi command %s với recipe và người dùng hiện tại',
+    async (action) => {
+      const { controller, commandBus } = buildController();
+
+      await expect(controller[action](recipeId, user)).resolves.toEqual(result);
+      expect(commandBus.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ recipeId, user }),
+      );
+      expect(commandBus.execute.mock.calls[0][0].constructor.name).toBe(
+        action === 'publish'
+          ? 'PublishRecipeCommand'
+          : 'UnpublishRecipeCommand',
+      );
+    },
+  );
 });
