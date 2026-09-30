@@ -42,6 +42,7 @@ describe('RecipesController update', () => {
     const controller = new RecipesController(
       commandBus as never,
       queryBus as never,
+      { upload: jest.fn(), setPrimary: jest.fn(), remove: jest.fn() } as never,
     );
     const response = { setHeader: jest.fn() };
 
