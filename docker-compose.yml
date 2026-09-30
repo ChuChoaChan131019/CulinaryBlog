@@ -33,8 +33,8 @@ services:
 
   minio:
     # minio/minio bị gỡ khỏi Docker Hub (archived 2026-02, xoá image 2026-09-11).
-    # Dùng mirror quay.io — RELEASE.2025-09-07 là build cộng đồng cuối cùng còn lại, không còn nhận vá CVE mới.
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    # Dùng mirror alphatran/minio trên Docker Hub — chỉ có tag `latest`, không có bản ghim theo version.
+    image: alphatran/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
