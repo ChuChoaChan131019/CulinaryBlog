@@ -17,6 +17,13 @@ export interface CategoryDetailDto {
 
 export interface CreateCategoryRequest {
   name: string;
-  slug?: string;
   description?: string;
+  imageUrl?: string;
+}
+
+export interface CreatedCategoryDto {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
 }
