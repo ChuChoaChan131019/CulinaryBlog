@@ -84,7 +84,7 @@ describe('RecipesController update', () => {
     },
   );
 
-  it.each(['publish', 'unpublish'] as const)(
+  it.each(['publish', 'unpublish', 'archive'] as const)(
     'gửi command %s với recipe và người dùng hiện tại',
     async (action) => {
       const { controller, commandBus, response } = buildController();
@@ -96,11 +96,13 @@ describe('RecipesController update', () => {
         expect.objectContaining({ recipeId, user }),
       );
       expect(commandBus.execute.mock.calls[0][0].constructor.name).toBe(
-        action === 'publish'
-          ? 'PublishRecipeCommand'
-          : 'UnpublishRecipeCommand',
+        {
+          publish: 'PublishRecipeCommand',
+          unpublish: 'UnpublishRecipeCommand',
+          archive: 'ArchiveRecipeCommand',
+        }[action],
       );
-      // Publish/unpublish tăng rowVersion nên phải trả ETag mới như PUT :id, không thì
+      // Thay đổi trạng thái tăng rowVersion nên phải trả ETag mới như PUT :id, không thì
       // client giữ ETag cũ sẽ bị 409 oan ở lần ghi kế tiếp.
       expect(response.setHeader).toHaveBeenCalledWith('ETag', '"4"');
     },
