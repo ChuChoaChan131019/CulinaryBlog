@@ -1,9 +1,10 @@
-import { ConflictException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import * as argon2 from 'argon2';
 import { eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION, Database } from '../../../infrastructure/database/database.module';
 import { users } from '../../../infrastructure/database/schema';
+import { authEmailExists } from '../auth.exceptions';
 import { RegisterCommand } from './register.command';
 
 export interface RegisterResult {
@@ -21,12 +22,7 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand, Registe
 
     const existing = await this.db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
     if (existing.length > 0) {
-      throw new ConflictException({
-        type: 'about:blank',
-        title: 'Email đã tồn tại',
-        status: 409,
-        detail: 'AUTH_EMAIL_EXISTS',
-      });
+      throw authEmailExists();
     }
 
     const passwordHash = await argon2.hash(password);

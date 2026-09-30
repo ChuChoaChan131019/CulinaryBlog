@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { ForbiddenException, Inject, Logger, UnauthorizedException } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { and, eq, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION, Database } from '../../../infrastructure/database/database.module';
 import { refreshTokens, users } from '../../../infrastructure/database/schema';
+import { authAccountDisabled, authRefreshTokenExpired, authRefreshTokenRevoked } from '../auth.exceptions';
 import { hashToken } from '../hash-token';
 import { RefreshTokenCommand } from './refresh-token.command';
 
@@ -14,22 +15,6 @@ export interface RefreshTokenResult {
   refreshToken: string;
   expiresIn: number;
 }
-
-const REFRESH_TOKEN_EXPIRED = () =>
-  new UnauthorizedException({
-    type: 'about:blank',
-    title: 'Refresh token không hợp lệ hoặc đã hết hạn',
-    status: 401,
-    detail: 'AUTH_REFRESH_TOKEN_EXPIRED',
-  });
-
-const REFRESH_TOKEN_REVOKED = () =>
-  new UnauthorizedException({
-    type: 'about:blank',
-    title: 'Refresh token đã bị thu hồi',
-    status: 401,
-    detail: 'AUTH_REFRESH_TOKEN_REVOKED',
-  });
 
 @CommandHandler(RefreshTokenCommand)
 export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand, RefreshTokenResult> {
@@ -50,7 +35,7 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand,
         secret: refreshSecret,
       }));
     } catch {
-      throw REFRESH_TOKEN_EXPIRED();
+      throw authRefreshTokenExpired();
     }
 
     const presentedHash = hashToken(command.refreshToken);
@@ -65,7 +50,7 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand,
       .where(eq(refreshTokens.tokenHash, presentedHash))
       .limit(1);
 
-    if (!stored) throw REFRESH_TOKEN_EXPIRED();
+    if (!stored) throw authRefreshTokenExpired();
 
     if (stored.revokedAt) {
       // Reuse Attack Detection: token đã bị rotate/revoke trước đó mà vẫn bị dùng lại
@@ -77,24 +62,19 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand,
         .update(refreshTokens)
         .set({ revokedAt: new Date() })
         .where(and(eq(refreshTokens.userId, stored.userId), isNull(refreshTokens.revokedAt)));
-      throw REFRESH_TOKEN_REVOKED();
+      throw authRefreshTokenRevoked();
     }
 
-    if (stored.expiresAt.getTime() <= Date.now()) throw REFRESH_TOKEN_EXPIRED();
+    if (stored.expiresAt.getTime() <= Date.now()) throw authRefreshTokenExpired();
 
     const [user] = await this.db
       .select({ id: users.id, isActive: users.isActive })
       .from(users)
       .where(and(eq(users.id, sub), eq(users.isDeleted, false)))
       .limit(1);
-    if (!user) throw REFRESH_TOKEN_EXPIRED();
+    if (!user) throw authRefreshTokenExpired();
     if (!user.isActive) {
-      throw new ForbiddenException({
-        type: 'about:blank',
-        title: 'Tài khoản đã bị vô hiệu hóa',
-        status: 403,
-        detail: 'AUTH_ACCOUNT_DISABLED',
-      });
+      throw authAccountDisabled();
     }
 
     const accessSecret = this.config.getOrThrow<string>('JWT_ACCESS_SECRET');

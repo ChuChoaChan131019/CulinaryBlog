@@ -1,13 +1,30 @@
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1');
+  app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, transform: true }),
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      exceptionFactory: (errors) =>
+        new BadRequestException({
+          type: 'about:blank',
+          title: 'Dữ liệu không hợp lệ',
+          status: 400,
+          detail: 'VALIDATION_ERROR',
+          errors: Object.fromEntries(
+            errors
+              .filter((error) => error.constraints)
+              .map((error) => [error.property, Object.values(error.constraints!)]),
+          ),
+        }),
+    }),
   );
 
   const swaggerConfig = new DocumentBuilder()
