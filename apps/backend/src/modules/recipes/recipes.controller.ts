@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -13,11 +14,14 @@ import {
   Put,
   Query,
   Res,
+  UploadedFile,
+  UseInterceptors,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { PagedResult, RecipeSummaryDto } from '@culinary/shared';
 import type { Response } from 'express';
 import { AuthenticatedUser } from '../../common/auth/authenticated-user';
@@ -38,6 +42,9 @@ import {
   GetRecipesQueryParams,
 } from './dto/get-recipes-query.dto';
 import { GetRecipesQuery } from './queries/get-recipes.query';
+import { RecipeImagesService } from '../media/recipe-images.service';
+import { UploadFile, MAX_FILE_SIZE } from '../media/file-storage.service';
+import { FileUploadExceptionInterceptor } from '../media/file-upload-exception.interceptor';
 
 @ApiTags('recipes')
 @Controller('recipes')
@@ -45,6 +52,7 @@ export class RecipesController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly recipeImages: RecipeImagesService,
   ) {}
 
   @Get()
@@ -62,6 +70,52 @@ export class RecipesController {
     query: GetRecipesQueryParams,
   ): Promise<PagedResult<RecipeSummaryDto>> {
     return this.queryBus.execute(new GetRecipesQuery(query, user));
+  }
+
+  @Post(':id/images')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  @UseInterceptors(
+    new FileUploadExceptionInterceptor(),
+    FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE } }),
+  )
+  uploadImage(
+    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @UploadedFile() file: UploadFile | undefined,
+    @Body('altText') altText?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException({ type: 'VALIDATION_ERROR', detail: 'A file is required.' });
+    }
+    return this.recipeImages.upload(id, user, file, altText);
+  }
+
+  @Patch(':id/images/:imageId/primary')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  setPrimaryImage(
+    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param('imageId', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) imageId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.recipeImages.setPrimary(id, imageId, user);
+  }
+
+  @Delete(':id/images/:imageId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  async deleteImage(
+    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param('imageId', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) imageId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    await this.recipeImages.remove(id, imageId, user);
   }
 
   @Post()

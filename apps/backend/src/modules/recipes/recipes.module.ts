@@ -12,10 +12,12 @@ import { UnpublishRecipeHandler } from './commands/unpublish-recipe.handler';
 import { UpdateRecipeHandler } from './commands/update-recipe.handler';
 import { RecipesController } from './recipes.controller';
 import { GetRecipesHandler } from './queries/get-recipes.handler';
+import { MediaModule } from '../media/media.module';
 
 @Module({
   imports: [
     CqrsModule,
+    MediaModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
