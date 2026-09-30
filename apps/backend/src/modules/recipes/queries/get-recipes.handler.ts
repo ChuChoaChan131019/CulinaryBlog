@@ -29,9 +29,10 @@ import { GetRecipesQuery } from './get-recipes.query';
 const CACHE_TTL_SECONDS = 15 * 60;
 
 @QueryHandler(GetRecipesQuery)
-export class GetRecipesHandler
-  implements IQueryHandler<GetRecipesQuery, PagedResult<RecipeSummaryDto>>
-{
+export class GetRecipesHandler implements IQueryHandler<
+  GetRecipesQuery,
+  PagedResult<RecipeSummaryDto>
+> {
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: Database,
     private readonly cache: CacheService,
@@ -123,7 +124,7 @@ export class GetRecipesHandler
   }
 
   private createConditions(query: GetRecipesQuery): SQL[] {
-    const { params, user } = query;
+    const { params, user, ownerStatuses } = query;
     const conditions: SQL[] = [eq(recipes.isDeleted, false)];
 
     if (user?.role !== 'Admin') {
@@ -133,7 +134,7 @@ export class GetRecipesHandler
               eq(recipes.status, 'Published'),
               and(
                 eq(recipes.authorId, user.id),
-                inArray(recipes.status, ['Draft', 'Archived']),
+                inArray(recipes.status, ownerStatuses),
               ),
             )!
           : eq(recipes.status, 'Published'),
@@ -166,12 +167,16 @@ export class GetRecipesHandler
   }
 
   private createCacheKey(query: GetRecipesQuery): string {
-    const { params, user } = query;
+    const { params, user, ownerStatuses } = query;
     const visibility =
       user?.role === 'Admin'
         ? 'Admin'
         : user
-          ? `Author:${user.id}`
+          ? `Author:${user.id}${
+              ownerStatuses.join(',') === 'Draft,Archived'
+                ? ''
+                : `:${ownerStatuses.join(',')}`
+            }`
           : 'Guest';
 
     return [

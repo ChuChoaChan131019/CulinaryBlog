@@ -1,3 +1,6 @@
+import type { PagedResult } from './common';
+import type { RecipeSummaryDto } from './recipe';
+
 export interface CategoryDto {
   id: string;
   name: string;
@@ -5,6 +8,11 @@ export interface CategoryDto {
   description: string | null;
   imageUrl: string | null;
   recipeCount: number;
+}
+
+export interface CategoryDetailDto {
+  category: CategoryDto;
+  recipes: PagedResult<RecipeSummaryDto>;
 }
 
 export interface CreateCategoryRequest {
