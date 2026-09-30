@@ -1,4 +1,4 @@
-import { ForbiddenException, HttpException, HttpStatus, Inject, UnauthorizedException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -6,6 +6,7 @@ import * as argon2 from 'argon2';
 import { and, eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION, Database } from '../../../infrastructure/database/database.module';
 import { users } from '../../../infrastructure/database/schema';
+import { authAccountDisabled, authAccountLocked, authInvalidCredentials } from '../auth.exceptions';
 import { TokenPair, issueTokens } from './issue-tokens';
 import { LoginCommand } from './login.command';
 
@@ -13,25 +14,6 @@ export type LoginResult = TokenPair;
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
-
-const INVALID_CREDENTIALS = () =>
-  new UnauthorizedException({
-    type: 'about:blank',
-    title: 'Sai email hoặc mật khẩu',
-    status: 401,
-    detail: 'AUTH_INVALID_CREDENTIALS',
-  });
-
-const ACCOUNT_LOCKED = () =>
-  new HttpException(
-    {
-      type: 'about:blank',
-      title: `Tài khoản tạm khóa do đăng nhập sai quá ${MAX_FAILED_ATTEMPTS} lần, thử lại sau ${LOCKOUT_MINUTES} phút`,
-      status: HttpStatus.LOCKED,
-      detail: 'AUTH_ACCOUNT_LOCKED',
-    },
-    HttpStatus.LOCKED,
-  );
 
 @CommandHandler(LoginCommand)
 export class LoginHandler implements ICommandHandler<LoginCommand, LoginResult> {
@@ -58,9 +40,9 @@ export class LoginHandler implements ICommandHandler<LoginCommand, LoginResult> 
       .limit(1);
 
     // Không tiết lộ email có tồn tại hay không (AUTH_INVALID_CREDENTIALS chung chung).
-    if (!user || !user.passwordHash) throw INVALID_CREDENTIALS();
+    if (!user || !user.passwordHash) throw authInvalidCredentials();
 
-    if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) throw ACCOUNT_LOCKED();
+    if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) throw authAccountLocked();
 
     if (!(await argon2.verify(user.passwordHash, password))) {
       const attempts = user.failedLoginAttempts + 1;
@@ -72,7 +54,7 @@ export class LoginHandler implements ICommandHandler<LoginCommand, LoginResult> 
           lockedUntil: locked ? new Date(Date.now() + LOCKOUT_MINUTES * 60_000) : null,
         })
         .where(eq(users.id, user.id));
-      throw INVALID_CREDENTIALS();
+      throw authInvalidCredentials();
     }
 
     if (user.failedLoginAttempts > 0 || user.lockedUntil) {
@@ -83,12 +65,7 @@ export class LoginHandler implements ICommandHandler<LoginCommand, LoginResult> 
     }
 
     if (!user.isActive) {
-      throw new ForbiddenException({
-        type: 'about:blank',
-        title: 'Tài khoản đã bị vô hiệu hóa',
-        status: 403,
-        detail: 'AUTH_ACCOUNT_DISABLED',
-      });
+      throw authAccountDisabled();
     }
 
     return issueTokens(this.db, this.jwtService, this.config, user.id, command.ip);

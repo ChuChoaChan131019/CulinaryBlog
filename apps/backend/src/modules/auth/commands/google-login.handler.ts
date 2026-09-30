@@ -1,10 +1,11 @@
-import { BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { JwtService } from '@nestjs/jwt';
 import { and, eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION, Database } from '../../../infrastructure/database/database.module';
 import { users } from '../../../infrastructure/database/schema';
+import { authAccountDisabled, authGoogleTokenInvalid } from '../auth.exceptions';
 import { GoogleLoginCommand } from './google-login.command';
 import { TokenPair, issueTokens } from './issue-tokens';
 
@@ -15,14 +16,6 @@ interface GoogleTokenInfo {
   name?: string;
   picture?: string;
 }
-
-const INVALID_TOKEN = () =>
-  new BadRequestException({
-    type: 'about:blank',
-    title: 'Google ID token không hợp lệ',
-    status: 400,
-    detail: 'AUTH_GOOGLE_TOKEN_INVALID',
-  });
 
 @CommandHandler(GoogleLoginCommand)
 export class GoogleLoginHandler implements ICommandHandler<GoogleLoginCommand, TokenPair> {
@@ -44,12 +37,7 @@ export class GoogleLoginHandler implements ICommandHandler<GoogleLoginCommand, T
     // Email đã đăng ký thủ công trước đó → liên kết, không tạo user trùng.
     if (existing) {
       if (!existing.isActive) {
-        throw new ForbiddenException({
-          type: 'about:blank',
-          title: 'Tài khoản đã bị vô hiệu hóa',
-          status: 403,
-          detail: 'AUTH_ACCOUNT_DISABLED',
-        });
+        throw authAccountDisabled();
       }
       if (!existing.avatarUrl && profile.picture) {
         await this.db
@@ -82,11 +70,11 @@ export class GoogleLoginHandler implements ICommandHandler<GoogleLoginCommand, T
     const res = await fetch(
       `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
     );
-    if (!res.ok) throw INVALID_TOKEN();
+    if (!res.ok) throw authGoogleTokenInvalid();
 
     const info = (await res.json()) as GoogleTokenInfo;
     // aud sai = token phát cho app khác; email chưa verify = không tin được là chủ email.
-    if (info.aud !== clientId || !info.email || info.email_verified !== 'true') throw INVALID_TOKEN();
+    if (info.aud !== clientId || !info.email || info.email_verified !== 'true') throw authGoogleTokenInvalid();
 
     return info;
   }
