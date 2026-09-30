@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -38,6 +39,12 @@ import {
   GetRecipesQueryParams,
 } from './dto/get-recipes-query.dto';
 import { GetRecipesQuery } from './queries/get-recipes.query';
+import { RecipeIngredientsService } from './recipe-ingredients.service';
+import {
+  CreateRecipeIngredientDto,
+  UpdateRecipeIngredientDto,
+} from './dto/recipe-ingredient.dto';
+import { RecipeIngredientResponseDto } from './dto/recipe.dto';
 
 @ApiTags('recipes')
 @Controller('recipes')
@@ -45,7 +52,58 @@ export class RecipesController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly recipeIngredients: RecipeIngredientsService,
   ) {}
+
+  @Get(':id/ingredients')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  listIngredients(
+    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<RecipeIngredientResponseDto[]> {
+    return this.recipeIngredients.list(id, user);
+  }
+
+  @Post(':id/ingredients')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  createIngredient(
+    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Body() dto: CreateRecipeIngredientDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.recipeIngredients.create(id, dto, user);
+  }
+
+  @Put(':id/ingredients/:ingredientId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  updateIngredient(
+    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param('ingredientId', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) ingredientId: string,
+    @Body() dto: UpdateRecipeIngredientDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.recipeIngredients.update(id, ingredientId, dto, user);
+  }
+
+  @Delete(':id/ingredients/:ingredientId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  async deleteIngredient(
+    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param('ingredientId', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) ingredientId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    await this.recipeIngredients.remove(id, ingredientId, user);
+  }
 
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
