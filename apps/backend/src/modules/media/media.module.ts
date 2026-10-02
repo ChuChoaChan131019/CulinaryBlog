@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MediaController } from './media.controller';
 import { FILE_STORAGE, FileStorageService } from './file-storage.service';
 import { MinioFileStorageService } from './minio-file-storage.service';
+import { RecipeImagesService } from './recipe-images.service';
 
 @Module({
   imports: [ConfigModule],
@@ -11,7 +12,8 @@ import { MinioFileStorageService } from './minio-file-storage.service';
     MinioFileStorageService,
     { provide: FILE_STORAGE, useExisting: MinioFileStorageService },
     FileStorageService,
+    RecipeImagesService,
   ],
-  exports: [FileStorageService, FILE_STORAGE],
+  exports: [FileStorageService, FILE_STORAGE, RecipeImagesService],
 })
 export class MediaModule {}
