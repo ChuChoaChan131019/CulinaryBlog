@@ -68,7 +68,11 @@ export class RecipesController {
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
   listIngredients(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<RecipeIngredientResponseDto[]> {
     return this.recipeIngredients.list(id, user);
@@ -80,7 +84,11 @@ export class RecipesController {
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
   createIngredient(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
     @Body() dto: CreateRecipeIngredientDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
@@ -92,8 +100,16 @@ export class RecipesController {
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
   updateIngredient(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
-    @Param('ingredientId', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) ingredientId: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @Param(
+      'ingredientId',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    ingredientId: string,
     @Body() dto: UpdateRecipeIngredientDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
@@ -106,8 +122,16 @@ export class RecipesController {
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
   async deleteIngredient(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
-    @Param('ingredientId', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) ingredientId: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @Param(
+      'ingredientId',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    ingredientId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
     await this.recipeIngredients.remove(id, ingredientId, user);
@@ -140,13 +164,20 @@ export class RecipesController {
     FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE } }),
   )
   uploadImage(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: UploadFile | undefined,
     @Body('altText') altText?: string,
   ) {
     if (!file) {
-      throw new BadRequestException({ type: 'VALIDATION_ERROR', detail: 'A file is required.' });
+      throw new BadRequestException({
+        type: 'VALIDATION_ERROR',
+        detail: 'A file is required.',
+      });
     }
     return this.recipeImages.upload(id, user, file, altText);
   }
@@ -156,8 +187,16 @@ export class RecipesController {
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
   setPrimaryImage(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
-    @Param('imageId', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) imageId: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @Param(
+      'imageId',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    imageId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.recipeImages.setPrimary(id, imageId, user);
@@ -169,8 +208,16 @@ export class RecipesController {
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
   async deleteImage(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
-    @Param('imageId', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) imageId: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @Param(
+      'imageId',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    imageId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
     await this.recipeImages.remove(id, imageId, user);
