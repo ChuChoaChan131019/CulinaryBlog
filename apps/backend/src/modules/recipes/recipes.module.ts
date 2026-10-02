@@ -13,6 +13,7 @@ import { UnpublishRecipeHandler } from './commands/unpublish-recipe.handler';
 import { UpdateRecipeHandler } from './commands/update-recipe.handler';
 import { RecipesController } from './recipes.controller';
 import { GetRecipesHandler } from './queries/get-recipes.handler';
+import { RecipeIngredientsService } from './recipe-ingredients.service';
 import { MediaModule } from '../media/media.module';
 
 @Module({
@@ -39,6 +40,7 @@ import { MediaModule } from '../media/media.module';
     JwtAuthGuard,
     OptionalJwtAuthGuard,
     RolesGuard,
+    RecipeIngredientsService,
   ],
 })
 export class RecipesModule {}

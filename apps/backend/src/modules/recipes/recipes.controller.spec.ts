@@ -39,15 +39,31 @@ describe('RecipesController update', () => {
   function buildController() {
     const commandBus = { execute: jest.fn().mockResolvedValue(result) };
     const queryBus = { execute: jest.fn() };
+    const recipeIngredients = {
+      list: jest.fn().mockResolvedValue([]),
+      create: jest.fn(),
+      update: jest.fn(),
+      remove: jest.fn(),
+    };
     const controller = new RecipesController(
       commandBus as never,
       queryBus as never,
+      recipeIngredients as never,
       { upload: jest.fn(), setPrimary: jest.fn(), remove: jest.fn() } as never,
     );
     const response = { setHeader: jest.fn() };
 
-    return { controller, commandBus, response };
+    return { controller, commandBus, response, recipeIngredients };
   }
+
+  it('liệt kê nguyên liệu qua service theo recipe và user hiện tại', async () => {
+    const { controller, recipeIngredients } = buildController();
+
+    await expect(controller.listIngredients(recipeId, user)).resolves.toEqual(
+      [],
+    );
+    expect(recipeIngredients.list).toHaveBeenCalledWith(recipeId, user);
+  });
 
   it.each(['3', '"3"'])('đọc If-Match %s và trả ETag mới', async (ifMatch) => {
     const { controller, commandBus, response } = buildController();
