@@ -30,6 +30,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ArchiveRecipeCommand } from './commands/archive-recipe.command';
 import { CreateRecipeCommand } from './commands/create-recipe.command';
 import { PublishRecipeCommand } from './commands/publish-recipe.command';
 import { UnpublishRecipeCommand } from './commands/unpublish-recipe.command';
@@ -184,6 +185,28 @@ export class RecipesController {
       UnpublishRecipeCommand,
       RecipeDto
     >(new UnpublishRecipeCommand(id, user));
+
+    response.setHeader('ETag', `"${result.rowVersion}"`);
+    return result;
+  }
+
+  @Patch(':id/archive')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  async archive(
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<RecipeDto> {
+    const result = await this.commandBus.execute<
+      ArchiveRecipeCommand,
+      RecipeDto
+    >(new ArchiveRecipeCommand(id, user));
 
     response.setHeader('ETag', `"${result.rowVersion}"`);
     return result;

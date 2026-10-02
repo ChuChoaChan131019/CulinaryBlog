@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ArchiveRecipeHandler } from './commands/archive-recipe.handler';
 import { CreateRecipeHandler } from './commands/create-recipe.handler';
 import { PublishRecipeHandler } from './commands/publish-recipe.handler';
 import { RecipeStatusService } from './commands/recipe-status.service';
@@ -28,6 +29,7 @@ import { MediaModule } from '../media/media.module';
   ],
   controllers: [RecipesController],
   providers: [
+    ArchiveRecipeHandler,
     CreateRecipeHandler,
     PublishRecipeHandler,
     UnpublishRecipeHandler,
