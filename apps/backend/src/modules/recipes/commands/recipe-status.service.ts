@@ -20,7 +20,7 @@ import {
 } from '../../../infrastructure/database/schema';
 import { RecipeDto } from '../dto/recipe.dto';
 
-type TargetStatus = 'Draft' | 'Published';
+type TargetStatus = 'Draft' | 'Published' | 'Archived';
 
 @Injectable()
 export class RecipeStatusService {
@@ -35,6 +35,10 @@ export class RecipeStatusService {
 
   unpublish(recipeId: string, user: AuthenticatedUser): Promise<RecipeDto> {
     return this.transition(recipeId, user, 'Draft');
+  }
+
+  archive(recipeId: string, user: AuthenticatedUser): Promise<RecipeDto> {
+    return this.transition(recipeId, user, 'Archived');
   }
 
   private async transition(
@@ -67,7 +71,7 @@ export class RecipeStatusService {
         });
       }
 
-      if (existing.status === 'Archived') {
+      if (existing.status === 'Archived' && targetStatus !== 'Archived') {
         throw new UnprocessableEntityException({
           type: 'RECIPE_INVALID_STATUS_TRANSITION',
           title: 'Không thể thay đổi trạng thái công thức',

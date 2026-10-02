@@ -1,14 +1,18 @@
 import {
+  boolean,
   decimal,
   integer,
+  index,
   pgEnum,
   pgTable,
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { baseColumns } from './base.columns';
 import { categories } from './categories.schema';
 import { users } from './users.schema';
@@ -85,6 +89,30 @@ export const recipeIngredients = pgTable('recipe_ingredients', {
   notes: varchar('notes', { length: 500 }),
   orderIndex: integer('order_index').notNull().default(0),
 });
+
+export const recipeImages = pgTable(
+  'recipe_images',
+  {
+    ...baseColumns,
+    recipeId: uuid('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    originalUrl: varchar('original_url', { length: 500 }).notNull(),
+    objectKey: varchar('object_key', { length: 500 }).notNull(),
+    mediumUrl: varchar('medium_url', { length: 500 }),
+    thumbnailUrl: varchar('thumbnail_url', { length: 500 }),
+    altText: varchar('alt_text', { length: 200 }),
+    isPrimary: boolean('is_primary').notNull().default(false),
+    orderIndex: integer('order_index').notNull().default(0),
+  },
+  (table) => [
+    index('recipe_images_recipe_id_idx').on(table.recipeId),
+    // The database is the final guard against two concurrent primary updates.
+    uniqueIndex('recipe_images_one_primary_per_recipe_idx')
+      .on(table.recipeId)
+      .where(sql`${table.isPrimary} = true`),
+  ],
+);
 
 export type Recipe = typeof recipes.$inferSelect;
 export type NewRecipe = typeof recipes.$inferInsert;

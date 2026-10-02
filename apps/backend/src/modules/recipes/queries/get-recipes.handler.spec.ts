@@ -164,13 +164,7 @@ describe('GetRecipesHandler', () => {
         email: 'trang@example.com',
         role: 'Author' as const,
       },
-      expectedParams: [
-        false,
-        'Published',
-        row.authorId,
-        'Draft',
-        'Archived',
-      ],
+      expectedParams: [false, 'Published', row.authorId, 'Draft', 'Archived'],
     },
     {
       name: 'Admin thấy mọi trạng thái',
@@ -199,5 +193,44 @@ describe('GetRecipesHandler', () => {
     const condition = db.countWhere.mock.calls[0][0];
     const compiled = new PgDialect().sqlToQuery(condition);
     expect(compiled.params).toEqual(expectedParams);
+  });
+
+  it('chỉ thêm Draft của Author khi được gọi từ category detail', async () => {
+    const db = buildDb(0, []);
+    const cache = buildCache();
+    const handler = new GetRecipesHandler(db as never, cache);
+    const user = {
+      id: row.authorId,
+      email: 'trang@example.com',
+      role: 'Author' as const,
+    };
+
+    await handler.execute(
+      new GetRecipesQuery(
+        {
+          page: 1,
+          pageSize: 12,
+          categoryId: row.categoryId,
+          sort: '-createdAt',
+        },
+        user,
+        ['Draft'],
+      ),
+    );
+
+    const condition = db.countWhere.mock.calls[0][0];
+    const compiled = new PgDialect().sqlToQuery(condition);
+    expect(compiled.params).toEqual([
+      false,
+      'Published',
+      row.authorId,
+      'Draft',
+      row.categoryId,
+    ]);
+    expect(cache.set).toHaveBeenCalledWith(
+      `recipes:list:Author:${row.authorId}:Draft:1:12:${row.categoryId}:-:-:-createdAt`,
+      expect.any(Object),
+      900,
+    );
   });
 });

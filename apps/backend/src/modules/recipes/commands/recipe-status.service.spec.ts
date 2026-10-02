@@ -195,6 +195,40 @@ describe('RecipeStatusService', () => {
     );
   });
 
+  it.each(['Draft', 'Published'] as const)(
+    'archive recipe %s, giữ dữ liệu và xóa cache',
+    async (status) => {
+      const publishedAt =
+        status === 'Published'
+          ? new Date('2026-09-01T10:00:00.000Z')
+          : null;
+      const existing = { ...baseRecipe, status, publishedAt };
+      const archived = {
+        ...existing,
+        status: 'Archived' as const,
+        updatedAt: new Date(),
+        rowVersion: 2,
+      };
+      const { service, updateSet, cache } = setup(
+        [[existing], steps, ingredients],
+        archived,
+      );
+
+      await expect(service.archive(recipeId, user)).resolves.toMatchObject({
+        status: 'Archived',
+        rowVersion: 2,
+      });
+      expect(updateSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'Archived',
+          updatedAt: expect.any(Date),
+        }),
+      );
+      expect(updateSet.mock.calls[0][0]).not.toHaveProperty('publishedAt');
+      expect(cache.delete).toHaveBeenCalledWith('recipes');
+    },
+  );
+
   it('chỉ update khi status vẫn khớp trạng thái đã đọc', async () => {
     const published = {
       ...baseRecipe,
@@ -243,6 +277,25 @@ describe('RecipeStatusService', () => {
     expect(cache.delete).not.toHaveBeenCalled();
   });
 
+  it('coi archive thua race là no-op khi recipe đã được lưu trữ', async () => {
+    const archived = {
+      ...baseRecipe,
+      status: 'Archived' as const,
+      updatedAt: new Date(),
+      rowVersion: 2,
+    };
+    const { service, cache } = setup(
+      [[baseRecipe], [archived], steps, ingredients],
+      null,
+    );
+
+    await expect(service.archive(recipeId, user)).resolves.toMatchObject({
+      status: 'Archived',
+      rowVersion: 2,
+    });
+    expect(cache.delete).not.toHaveBeenCalled();
+  });
+
   it('trả 409 khi recipe đổi trạng thái khác trong lúc update', async () => {
     const { service, cache } = setup(
       [[baseRecipe], [{ id: steps[0].id }], [baseRecipe]],
@@ -263,6 +316,7 @@ describe('RecipeStatusService', () => {
   it.each([
     ['publish', 'Published' as const],
     ['unpublish', 'Draft' as const],
+    ['archive', 'Archived' as const],
   ])('idempotent khi %s recipe ở đúng trạng thái', async (action, status) => {
     const existing = { ...baseRecipe, status };
     const { service, tx, cache } = setup([[existing], steps, ingredients]);
@@ -270,31 +324,45 @@ describe('RecipeStatusService', () => {
     const result =
       action === 'publish'
         ? service.publish(recipeId, user)
-        : service.unpublish(recipeId, user);
+        : action === 'unpublish'
+          ? service.unpublish(recipeId, user)
+          : service.archive(recipeId, user);
 
     await expect(result).resolves.toMatchObject({ status, rowVersion: 1 });
     expect(tx.update).not.toHaveBeenCalled();
     expect(cache.delete).not.toHaveBeenCalled();
   });
 
-  it('cho phép Admin thay đổi recipe của tác giả khác', async () => {
-    const published = {
+  it.each([
+    ['publish', 'Published' as const],
+    ['archive', 'Archived' as const],
+  ])('cho phép Admin %s recipe của tác giả khác', async (action, status) => {
+    const updated = {
       ...baseRecipe,
-      status: 'Published' as const,
-      publishedAt: new Date(),
+      status,
+      ...(status === 'Published' && { publishedAt: new Date() }),
     };
     const { service } = setup(
-      [[baseRecipe], [{ id: steps[0].id }], steps, ingredients],
-      published,
+      [
+        [baseRecipe],
+        ...(action === 'publish' ? [[{ id: steps[0].id }]] : []),
+        steps,
+        ingredients,
+      ],
+      updated,
     );
 
-    await expect(
-      service.publish(recipeId, {
-        id: 'admin-id',
-        email: 'admin@example.com',
-        role: 'Admin',
-      }),
-    ).resolves.toMatchObject({ status: 'Published' });
+    const admin = {
+      id: 'admin-id',
+      email: 'admin@example.com',
+      role: 'Admin' as const,
+    };
+    const result =
+      action === 'publish'
+        ? service.publish(recipeId, admin)
+        : service.archive(recipeId, admin);
+
+    await expect(result).resolves.toMatchObject({ status });
   });
 
   it.each([
