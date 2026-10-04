@@ -44,7 +44,9 @@ describe('refresh', () => {
   it('chỉ gọi /auth/refresh một lần dù nhiều request cùng lúc', async () => {
     // Rotation: lần refresh thứ hai sẽ dùng refresh token đã bị thu hồi và backend
     // ghi nhận reuse attack, nên single-flight là yêu cầu bắt buộc, không phải tối ưu.
-    fetchMock.mockResolvedValue(json({ accessToken: 'new-access', refreshToken: 'new-refresh', expiresIn: 900 }));
+    fetchMock.mockResolvedValue(
+      json({ data: { accessToken: 'new-access', refreshToken: 'new-refresh', expiresIn: 900 } }),
+    );
 
     const results = await Promise.all([refresh(), refresh(), refresh()]);
 
@@ -54,7 +56,9 @@ describe('refresh', () => {
   });
 
   it('cho phép refresh lại sau khi lần trước đã xong', async () => {
-    fetchMock.mockResolvedValue(json({ accessToken: 'a2', refreshToken: 'r2', expiresIn: 900 }));
+    fetchMock.mockResolvedValue(
+      json({ data: { accessToken: 'a2', refreshToken: 'r2', expiresIn: 900 } }),
+    );
 
     await refresh();
     await refresh();
@@ -81,7 +85,9 @@ describe('apiAuthed', () => {
   it('gặp 401 thì refresh rồi thử lại với access token mới', async () => {
     fetchMock
       .mockResolvedValueOnce(json({ status: 401, detail: 'AUTH_TOKEN_EXPIRED' }, 401))
-      .mockResolvedValueOnce(json({ accessToken: 'fresh', refreshToken: 'r2', expiresIn: 900 }))
+      .mockResolvedValueOnce(
+        json({ data: { accessToken: 'fresh', refreshToken: 'r2', expiresIn: 900 } }),
+      )
       .mockResolvedValueOnce(json({ data: user }));
 
     await expect(apiAuthed('/auth/me')).resolves.toEqual(user);

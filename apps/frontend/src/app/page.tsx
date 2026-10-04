@@ -1,10 +1,10 @@
-import type { CategoryDto, PagedResult, RecipeSummaryDto } from "@culinary/shared";
+import type { CategoryDto, PagedResponse, RecipeSummaryDto } from "@culinary/shared";
 import { ArrowRight, Search, Timer } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { RecipeCard } from "@/components/RecipeCard";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiGetPaged } from "@/lib/api";
 
 // Trang chủ là nội dung công khai, đổi theo nhịp đăng bài -> ISR 5 phút thay vì SSR mỗi request.
 export const revalidate = 300;
@@ -19,22 +19,24 @@ async function safe<T>(promise: Promise<T>, fallback: T): Promise<T> {
   }
 }
 
-const emptyPage: PagedResult<RecipeSummaryDto> = {
-  items: [],
-  totalCount: 0,
-  page: 1,
-  pageSize: 0,
-  totalPages: 0,
-  hasNextPage: false,
-  hasPreviousPage: false,
+const emptyPage: PagedResponse<RecipeSummaryDto> = {
+  data: [],
+  meta: {
+    totalCount: 0,
+    page: 1,
+    pageSize: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  },
 };
 
 export default async function HomePage() {
   const [categories, featured, quick] = await Promise.all([
     safe(apiGet<CategoryDto[]>("/categories"), [] as CategoryDto[]),
-    safe(apiGet<PagedResult<RecipeSummaryDto>>("/recipes", { pageSize: 6 }), emptyPage),
+    safe(apiGetPaged<RecipeSummaryDto>("/recipes", { pageSize: 6 }), emptyPage),
     // pageSize 1: chỉ cần totalCount cho con số "dưới 30 phút", không cần danh sách.
-    safe(apiGet<PagedResult<RecipeSummaryDto>>("/recipes", { pageSize: 1, maxCookTime: 30 }), emptyPage),
+    safe(apiGetPaged<RecipeSummaryDto>("/recipes", { pageSize: 1, maxCookTime: 30 }), emptyPage),
   ]);
 
   return (
@@ -79,14 +81,14 @@ export default async function HomePage() {
             </form>
 
             {/* Số liệu lấy từ API (totalCount), không phải con số minh hoạ như mockup. */}
-            {featured.totalCount > 0 && (
+            {featured.meta.totalCount > 0 && (
               <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-4">
-                <Metric value={featured.totalCount} label="Công thức đã đăng" />
+                <Metric value={featured.meta.totalCount} label="Công thức đã đăng" />
                 {categories.length > 0 && (
                   <Metric value={categories.length} label="Danh mục" />
                 )}
-                {quick.totalCount > 0 && (
-                  <Metric value={quick.totalCount} label="Món dưới 30 phút" />
+                {quick.meta.totalCount > 0 && (
+                  <Metric value={quick.meta.totalCount} label="Món dưới 30 phút" />
                 )}
               </dl>
             )}
@@ -102,14 +104,14 @@ export default async function HomePage() {
               sizes="(min-width: 1024px) 50vw, 100vw"
               className="aspect-[4/3] w-full rounded-3xl object-cover shadow-lift"
             />
-            {quick.totalCount > 0 && (
+            {quick.meta.totalCount > 0 && (
               <div className="absolute bottom-5 left-5 flex items-center gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-card backdrop-blur">
                 <span className="grid h-10 w-10 place-items-center rounded-full bg-primary-soft text-primary">
                   <Timer className="h-5 w-5" aria-hidden />
                 </span>
                 <div>
                   <p className="text-sm font-semibold">Dưới 30 phút</p>
-                  <p className="text-xs text-muted-foreground">{quick.totalCount} món cho ngày thường</p>
+                  <p className="text-xs text-muted-foreground">{quick.meta.totalCount} món cho ngày thường</p>
                 </div>
               </div>
             )}
@@ -156,9 +158,9 @@ export default async function HomePage() {
           linkLabel="Tất cả công thức"
         />
 
-        {featured.items.length > 0 ? (
+        {featured.data.length > 0 ? (
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.items.map((r) => (
+            {featured.data.map((r) => (
               <RecipeCard key={r.id} recipe={r} />
             ))}
           </div>
