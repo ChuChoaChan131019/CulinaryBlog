@@ -1,4 +1,4 @@
-import { inArray, eq } from 'drizzle-orm';
+import { and, inArray, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import {
@@ -10,6 +10,7 @@ import {
 } from '../src/infrastructure/database/schema';
 
 const AUTHOR_EMAIL = 'lab2.seed.author@example.invalid';
+const AUTHOR_DISPLAY_NAME = 'Sample Author';
 const CATEGORY_NAMES = [
   'Món Việt', 'Món Á', 'Món Âu', 'Món chay', 'Món nướng',
   'Món hấp', 'Món xào', 'Món chiên', 'Món kho', 'Món canh',
@@ -34,6 +35,14 @@ const STEP_TITLES = [
   'Chế biến phần chính', 'Nêm nếm', 'Hoàn thiện và trình bày',
 ] as const;
 
+function categorySlug(index: number): string {
+  return `category-${String(index + 1).padStart(2, '0')}`;
+}
+
+function legacyCategorySlug(index: number): string {
+  return `lab2-category-${String(index + 1).padStart(2, '0')}`;
+}
+
 function randomFor(index: number): () => number {
   let state = (0x6d2b79f5 + index * 0x9e3779b9) >>> 0;
   return () => {
@@ -54,7 +63,7 @@ class SeedDataFactory {
       const target = Math.floor(random() * (position + 1));
       [shuffled[position], shuffled[target]] = [shuffled[target], shuffled[position]];
     }
-    const title = `${DISHES[index % DISHES.length]} phiên bản ${String(index + 1).padStart(3, '0')}`;
+    const title = DISHES[index % DISHES.length];
     const ingredients = shuffled.slice(0, ingredientCount).map((name, orderIndex) => ({
       name,
       quantity: String(1 + Math.floor(random() * 5)),
@@ -128,34 +137,72 @@ async function main(): Promise<void> {
     const added = await db.transaction(async (tx) => {
       await tx.insert(users).values({
         email: AUTHOR_EMAIL,
-        displayName: 'Lab 2 Sample Author',
+        displayName: AUTHOR_DISPLAY_NAME,
         role: 'Author',
       }).onConflictDoNothing({ target: users.email });
+      await tx.update(users)
+        .set({ displayName: AUTHOR_DISPLAY_NAME })
+        .where(eq(users.email, AUTHOR_EMAIL));
       const [author] = await tx.select({ id: users.id }).from(users).where(eq(users.email, AUTHOR_EMAIL));
       if (!author) throw new Error('Could not find seed author.');
 
-      await tx.insert(categories).values(CATEGORY_NAMES.map((name, index) => ({
-        name: `Lab 2 - ${name}`,
-        slug: `lab2-category-${String(index + 1).padStart(2, '0')}`,
-        description: `Danh mục mẫu ${name.toLowerCase()} cho lab 2.`,
+      const categorySeed = CATEGORY_NAMES.map((name, index) => ({
+        name,
+        slug: categorySlug(index),
+        description: `Danh mục ${name.toLowerCase()}.`,
         orderIndex: index,
-      }))).onConflictDoNothing();
+      }));
+      await tx.insert(categories).values(categorySeed).onConflictDoNothing();
+      for (const category of categorySeed) {
+        await tx.update(categories)
+          .set({
+            name: category.name,
+            description: category.description,
+            orderIndex: category.orderIndex,
+          })
+          .where(eq(categories.slug, category.slug));
+      }
       const categoryRows = await tx.select({ id: categories.id, slug: categories.slug })
         .from(categories)
-        .where(inArray(categories.slug, CATEGORY_NAMES.map((_, index) => `lab2-category-${String(index + 1).padStart(2, '0')}`)));
+        .where(inArray(categories.slug, CATEGORY_NAMES.map((_, index) => categorySlug(index))));
       if (categoryRows.length !== CATEGORY_NAMES.length) {
         throw new Error('Could not find all seed categories.');
       }
       const categoryIds = new Map(categoryRows.map(({ slug, id }) => [slug, id]));
-      const existing = await tx.select({ slug: recipes.slug }).from(recipes).where(inArray(recipes.slug, slugs));
-      const existingSlugs = new Set(existing.map(({ slug }) => slug));
+      const existing = await tx.select({ id: recipes.id, slug: recipes.slug })
+        .from(recipes)
+        .where(inArray(recipes.slug, slugs));
+      const existingRecipes = new Map(existing.map(({ slug, id }) => [slug, id]));
       let inserted = 0;
 
       for (let index = 0; index < 100; index++) {
         const data = SeedDataFactory.recipe(index);
-        if (existingSlugs.has(data.slug)) continue;
-        const categoryId = categoryIds.get(`lab2-category-${String(index % CATEGORY_NAMES.length + 1).padStart(2, '0')}`);
+        const categoryId = categoryIds.get(categorySlug(index % CATEGORY_NAMES.length));
         if (!categoryId) throw new Error(`Missing category for ${data.slug}.`);
+        const existingRecipeId = existingRecipes.get(data.slug);
+        if (existingRecipeId) {
+          await tx.update(recipes)
+            .set({
+              title: data.title,
+              description: data.description,
+              instructions: data.instructions,
+              categoryId,
+            })
+            .where(eq(recipes.id, existingRecipeId));
+          for (const step of data.steps) {
+            await tx.update(recipeSteps)
+              .set({
+                title: step.title,
+                description: step.description,
+                timerMinutes: step.timerMinutes,
+              })
+              .where(and(
+                eq(recipeSteps.recipeId, existingRecipeId),
+                eq(recipeSteps.stepNumber, step.stepNumber),
+              ));
+          }
+          continue;
+        }
         const [recipe] = await tx.insert(recipes).values({
           title: data.title,
           slug: data.slug,
@@ -180,9 +227,15 @@ async function main(): Promise<void> {
         })));
         inserted++;
       }
+      await tx.update(categories)
+        .set({ isDeleted: true })
+        .where(inArray(
+          categories.slug,
+          CATEGORY_NAMES.map((_, index) => legacyCategorySlug(index)),
+        ));
       return inserted;
     });
-    console.log(`Inserted ${added} recipes; existing seed recipes were left unchanged.`);
+    console.log(`Inserted ${added} recipes; existing seed display data was synchronized.`);
     await verify(pool);
   } finally {
     await pool.end();
