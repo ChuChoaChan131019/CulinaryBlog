@@ -27,6 +27,7 @@ export interface IFileStorageService {
     folder: string,
   ): Promise<StoredFile>;
   deleteAsync(key: string): Promise<void>;
+  isHealthy(): Promise<boolean>;
 }
 
 export const SUPPORTED_MIME_TYPES = new Set([
@@ -83,5 +84,9 @@ export class FileStorageService implements IFileStorageService {
     const safeKey = key.replace(/^\/+/, '').replace(/\.\.+/g, '');
     if (!safeKey) return Promise.resolve();
     return this.storage.deleteAsync(safeKey);
+  }
+
+  isHealthy(): Promise<boolean> {
+    return this.storage.isHealthy();
   }
 }

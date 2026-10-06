@@ -6,6 +6,7 @@ import { CacheModule } from './infrastructure/cache/cache.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { HealthModule } from './modules/health/health.module';
 import { MediaModule } from './modules/media/media.module';
 import { RecipesModule } from './modules/recipes/recipes.module';
 
@@ -18,6 +19,7 @@ import { RecipesModule } from './modules/recipes/recipes.module';
     CategoriesModule,
     RecipesModule,
     MediaModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
