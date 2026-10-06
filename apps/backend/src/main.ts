@@ -41,6 +41,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(process.env.BACKEND_PORT ?? process.env.PORT ?? 3000);
+  // PORT (ép cứng trong docker-compose) phải được ưu tiên hơn BACKEND_PORT (chỉ
+  // dùng cho cổng host khi chạy ngoài Docker) — nếu không container sẽ lắng
+  // nghe nhầm cổng host, khiến Nginx upstream backend:5000 trả 502.
+  await app.listen(process.env.PORT ?? process.env.BACKEND_PORT ?? 3000);
 }
 void bootstrap();
