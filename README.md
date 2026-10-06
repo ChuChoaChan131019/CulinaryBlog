@@ -66,7 +66,7 @@ pnpm db:seed
 pnpm db:verify
 ```
 
-Script seed tạo một tác giả mẫu (không có mật khẩu đăng nhập), 20 danh mục và 100 công thức; mỗi công thức có 10–12 nguyên liệu và 5–7 bước. Các bản ghi mẫu có slug bắt đầu bằng `lab2-`; chạy lại chỉ thêm bản ghi còn thiếu, không sửa hoặc xóa dữ liệu có sẵn. `db:verify` truy vấn số danh mục, số công thức và số công thức có dưới 10 nguyên liệu hoặc dưới 5 bước. Nếu `DATABASE_URL` trỏ tới PostgreSQL ở máy khác, đặt biến môi trường đó trước khi chạy ba lệnh `db:*`.
+Script seed tạo một tác giả mẫu (không có mật khẩu đăng nhập), dùng 20 danh mục có tên tự nhiên và tạo 100 công thức; mỗi công thức có 10–12 nguyên liệu và 5–7 bước. Công thức mẫu có slug bắt đầu bằng `lab2-`; chạy lại sẽ thêm bản ghi còn thiếu, đồng bộ tên hiển thị của tác giả, danh mục, công thức hiện có và ẩn các danh mục `Lab 2` cũ mà không xóa dữ liệu. `db:verify` truy vấn số danh mục, số công thức và số công thức có dưới 10 nguyên liệu hoặc dưới 5 bước. Nếu `DATABASE_URL` trỏ tới PostgreSQL ở máy khác, đặt biến môi trường đó trước khi chạy ba lệnh `db:*`.
 
 ## Cấu trúc
 
