@@ -9,6 +9,7 @@ import {
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { AuthenticatedUser } from '../../../common/auth/authenticated-user';
 import { CacheService } from '../../../infrastructure/cache/cache.service';
+import { recipePublishedCounter } from '../../../infrastructure/observability/metrics';
 import {
   DATABASE_CONNECTION,
   Database,
@@ -218,7 +219,10 @@ export class RecipeStatusService {
       };
     });
 
-    if (result.changed) await this.cache.delete('recipes');
+    if (result.changed) {
+      await this.cache.delete('recipes');
+      if (targetStatus === 'Published') recipePublishedCounter.add(1);
+    }
     return result.recipe;
   }
 }

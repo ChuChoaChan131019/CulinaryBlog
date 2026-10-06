@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { Module } from '@nestjs/common';
+import { trace } from '@opentelemetry/api';
 import { LoggerModule } from 'nestjs-pino';
 import type { Request, Response } from 'express';
 import type { AuthenticatedUser } from '../../common/auth/authenticated-user';
@@ -20,6 +21,7 @@ export function customProps(req: Request & { user?: AuthenticatedUser }) {
     correlationId: req.id,
     requestPath: req.url,
     userId: req.user?.id ?? null,
+    traceId: trace.getActiveSpan()?.spanContext().traceId ?? null,
   };
 }
 
