@@ -83,7 +83,20 @@ export class FileStorageService implements IFileStorageService {
   deleteAsync(key: string): Promise<void> {
     const safeKey = key.replace(/^\/+/, '').replace(/\.\.+/g, '');
     if (!safeKey) return Promise.resolve();
-    return this.storage.deleteAsync(safeKey);
+    return this.deleteWithRetry(safeKey);
+  }
+
+  private async deleteWithRetry(key: string): Promise<void> {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        await this.storage.deleteAsync(key);
+        return;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError;
   }
 
   isHealthy(): Promise<boolean> {

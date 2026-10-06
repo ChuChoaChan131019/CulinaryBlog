@@ -124,4 +124,16 @@ describe('RecipesController update', () => {
       expect(response.setHeader).toHaveBeenCalledWith('ETag', '"4"');
     },
   );
+
+  it('gửi DeleteRecipeCommand và trả thành công cho owner', async () => {
+    const { controller, commandBus } = buildController();
+
+    await expect(controller.deleteRecipe(recipeId, user)).resolves.toBeUndefined();
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ recipeId, user }),
+    );
+    expect(commandBus.execute.mock.calls[0][0].constructor.name).toBe(
+      'DeleteRecipeCommand',
+    );
+  });
 });

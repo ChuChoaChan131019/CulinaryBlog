@@ -15,11 +15,14 @@ import { RecipesController } from './recipes.controller';
 import { GetRecipesHandler } from './queries/get-recipes.handler';
 import { RecipeIngredientsService } from './recipe-ingredients.service';
 import { MediaModule } from '../media/media.module';
+import { JobsModule } from '../../infrastructure/jobs/jobs.module';
+import { DeleteRecipeHandler } from './commands/delete-recipe.handler';
 
 @Module({
   imports: [
     CqrsModule,
     MediaModule,
+    JobsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -31,6 +34,7 @@ import { MediaModule } from '../media/media.module';
   controllers: [RecipesController],
   providers: [
     ArchiveRecipeHandler,
+    DeleteRecipeHandler,
     CreateRecipeHandler,
     PublishRecipeHandler,
     UnpublishRecipeHandler,
