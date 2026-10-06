@@ -17,6 +17,9 @@ export type Database = ReturnType<typeof drizzle<typeof schema>>;
       useFactory: (config: ConfigService): Database => {
         const pool = new Pool({
           connectionString: config.getOrThrow<string>('DATABASE_URL'),
+          // pg mặc định không có timeout khi kết nối (chờ vô hạn) — nếu Postgres
+          // down, /health/ready sẽ treo tới khi Nginx tự trả 504 thay vì 503.
+          connectionTimeoutMillis: 5_000,
         });
         return drizzle(pool, { schema });
       },
