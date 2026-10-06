@@ -35,6 +35,7 @@ import { CreateRecipeCommand } from './commands/create-recipe.command';
 import { PublishRecipeCommand } from './commands/publish-recipe.command';
 import { UnpublishRecipeCommand } from './commands/unpublish-recipe.command';
 import { UpdateRecipeCommand } from './commands/update-recipe.command';
+import { DeleteRecipeCommand } from './commands/delete-recipe.command';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { RecipeDto } from './dto/recipe.dto';
 import { UpdateRecipeDto } from './dto/update-recipe.dto';
@@ -248,6 +249,22 @@ export class RecipesController {
         dto.ingredients,
       ),
     );
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Author', 'Admin')
+  @ApiBearerAuth()
+  async deleteRecipe(
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    await this.commandBus.execute(new DeleteRecipeCommand(id, user));
   }
 
   @Patch(':id/publish')

@@ -65,16 +65,7 @@ export class MinioFileStorageService implements IFileStorageService, OnModuleIni
   }
 
   async deleteAsync(key: string): Promise<void> {
-    let lastError: unknown;
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      try {
-        await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
-        return;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError;
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
   async isHealthy(): Promise<boolean> {
