@@ -25,13 +25,23 @@ describe('logging pino-http hooks', () => {
   it('includes correlationId, requestPath and userId when authenticated', () => {
     const req: any = { id: 'corr-1', url: '/api/v1/recipes', user: { id: 'user-1' } };
 
-    expect(customProps(req)).toEqual({ correlationId: 'corr-1', requestPath: '/api/v1/recipes', userId: 'user-1' });
+    expect(customProps(req)).toEqual({
+      correlationId: 'corr-1',
+      requestPath: '/api/v1/recipes',
+      userId: 'user-1',
+      traceId: null,
+    });
   });
 
   it('includes a null userId when unauthenticated', () => {
     const req: any = { id: 'corr-2', url: '/api/v1/health' };
 
-    expect(customProps(req)).toEqual({ correlationId: 'corr-2', requestPath: '/api/v1/health', userId: null });
+    expect(customProps(req)).toEqual({
+      correlationId: 'corr-2',
+      requestPath: '/api/v1/health',
+      userId: null,
+      traceId: null,
+    });
   });
 
   it('warns when a request takes longer than 500ms', () => {

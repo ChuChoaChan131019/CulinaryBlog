@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { and, eq } from 'drizzle-orm';
+import { recipeCreatedCounter } from '../../../infrastructure/observability/metrics';
 import { CacheService } from '../../../infrastructure/cache/cache.service';
 import {
   DATABASE_CONNECTION,
@@ -149,6 +150,7 @@ export class CreateRecipeHandler implements ICommandHandler<
       });
 
       await this.cache.delete('recipes');
+      recipeCreatedCounter.add(1);
       return result;
     } catch (error: unknown) {
       if (this.isSlugUniqueViolation(error)) {
