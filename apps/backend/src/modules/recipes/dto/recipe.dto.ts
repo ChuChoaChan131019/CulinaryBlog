@@ -25,6 +25,13 @@ export interface RecipeIngredientResponseDto {
   orderIndex: number;
 }
 
+export interface RecipeImageResponseDto {
+  imageId: string;
+  originalUrl: string;
+  altText: string | null;
+  isPrimary: boolean;
+}
+
 export interface RecipeDto {
   id: string;
   title: string;
@@ -41,6 +48,7 @@ export interface RecipeDto {
   nutrition: RecipeNutritionResponseDto;
   steps: RecipeStepResponseDto[];
   ingredients: RecipeIngredientResponseDto[];
+  images?: RecipeImageResponseDto[];
   rowVersion: number;
   createdAt: Date;
   updatedAt: Date | null;

@@ -50,6 +50,8 @@ describe('RecipesController update', () => {
       queryBus as never,
       recipeIngredients as never,
       { upload: jest.fn(), setPrimary: jest.fn(), remove: jest.fn() } as never,
+      { list: jest.fn(), create: jest.fn(), update: jest.fn(), remove: jest.fn() } as never,
+      { getBySlug: jest.fn() } as never,
     );
     const response = { setHeader: jest.fn() };
 
@@ -63,6 +65,50 @@ describe('RecipesController update', () => {
       [],
     );
     expect(recipeIngredients.list).toHaveBeenCalledWith(recipeId, user);
+  });
+
+  it('tạo nguyên liệu qua service', async () => {
+    const { controller, recipeIngredients } = buildController();
+    const dto = { name: 'Muối', quantity: 1, unit: 'thìa' };
+    const ingredient = { id: 'ingredient-id', ...dto };
+    recipeIngredients.create.mockResolvedValue(ingredient);
+
+    await expect(controller.createIngredient(recipeId, dto, user)).resolves.toEqual(
+      ingredient,
+    );
+    expect(recipeIngredients.create).toHaveBeenCalledWith(recipeId, dto, user);
+  });
+
+  it('cập nhật nguyên liệu qua service', async () => {
+    const { controller, recipeIngredients } = buildController();
+    const ingredientId = 'b5766939-6e3d-41cb-b652-84a185d9207f';
+    const dto = { name: 'Muối biển', quantity: 2, unit: 'thìa' };
+    const ingredient = { id: ingredientId, ...dto };
+    recipeIngredients.update.mockResolvedValue(ingredient);
+
+    await expect(
+      controller.updateIngredient(recipeId, ingredientId, dto, user),
+    ).resolves.toEqual(ingredient);
+    expect(recipeIngredients.update).toHaveBeenCalledWith(
+      recipeId,
+      ingredientId,
+      dto,
+      user,
+    );
+  });
+
+  it('xóa nguyên liệu qua service', async () => {
+    const { controller, recipeIngredients } = buildController();
+    const ingredientId = 'b5766939-6e3d-41cb-b652-84a185d9207f';
+
+    await expect(
+      controller.deleteIngredient(recipeId, ingredientId, user),
+    ).resolves.toBeUndefined();
+    expect(recipeIngredients.remove).toHaveBeenCalledWith(
+      recipeId,
+      ingredientId,
+      user,
+    );
   });
 
   it.each(['3', '"3"'])('đọc If-Match %s và trả ETag mới', async (ifMatch) => {
