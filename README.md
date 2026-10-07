@@ -34,12 +34,21 @@ pnpm dev:fe     # chỉ frontend  -> http://localhost:3000
 
 > macOS: port 5000 bị AirPlay Receiver chiếm, đổi `BACKEND_PORT=5050` trong `.env`.
 
-**Docker (full stack + nginx)**
+**Docker — dev (chỉ hạ tầng: Postgres, Redis, MinIO)**
 
 ```bash
-pnpm docker:up      # http://localhost  (/ -> frontend, /api/ -> backend)
+pnpm docker:up      # backend/frontend vẫn chạy local qua `pnpm dev` (hot reload)
 pnpm docker:down
 ```
+
+**Docker — prod (full stack đóng container, kèm nginx)**
+
+```bash
+pnpm docker:prod:up      # http://localhost  (/ -> frontend, /api/ -> backend), build backend/frontend/nginx
+pnpm docker:prod:down
+```
+
+> `docker-compose.yml` là hạ tầng dùng chung; `docker-compose.prod.yml` là overlay thêm backend/frontend/nginx — `docker:prod:*` tự ghép 2 file này (`-f docker-compose.yml -f docker-compose.prod.yml`).
 
 ## Scripts
 

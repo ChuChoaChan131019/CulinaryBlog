@@ -1,3 +1,7 @@
+# Compose cho dev: chỉ chạy hạ tầng (Postgres, Redis, MinIO) — backend/frontend chạy local qua
+# `pnpm dev` (hot reload), kết nối vào các service này qua port publish ở dưới (localhost).
+# Chạy full stack đóng container kiểu production (build backend/frontend/nginx) thì thêm overlay
+# docker-compose.prod.yml: `pnpm docker:prod:up` (xem package.json / README).
 services:
   postgres:
     image: postgres:16-alpine
@@ -56,90 +60,7 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
-    build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      NODE_ENV: production
-      PORT: 5000
-    expose:
-      - '5000'
-    ports:
-      - '${BACKEND_PORT:-5000}:5000'
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    healthcheck:
-      # node:22-alpine không có curl/wget — probe bằng http module của Node.
-      test:
-        [
-          'CMD',
-          'node',
-          '-e',
-          "require('http').get('http://127.0.0.1:5000/api/v1/health/live',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
-  frontend:
-    build:
-      context: .
-      dockerfile: apps/frontend/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      HOSTNAME: 0.0.0.0
-    expose:
-      - '3000'
-    ports:
-      - '${FRONTEND_PORT:-3000}:3000'
-    depends_on:
-      backend:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'node',
-          '-e',
-          "require('http').get('http://127.0.0.1:3000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
-  nginx:
-    build:
-      context: ./nginx
-    restart: unless-stopped
-    ports:
-      - '${NGINX_PORT:-80}:80'
-      - '${NGINX_SSL_PORT:-443}:443'
-    volumes:
-      - nginx-certs:/etc/nginx/certs
-    depends_on:
-      backend:
-        condition: service_healthy
-      frontend:
-        condition: service_healthy
-
 volumes:
   postgres-data:
   redis-data:
   minio-data:
-  nginx-certs:
