@@ -35,6 +35,13 @@ services:
       timeout: 5s
       retries: 5
 
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    ports:
+      - '${MAIL_PORT:-1025}:1025'
+      - '${MAILPIT_UI_PORT:-8025}:8025'
+
   minio:
     # image minio/minio trên Docker Hub bị khai tử (archived 2026-02, xoá 2026-09-11) — build thẳng
     # từ source qua git submodule vendor/minio thay vì phụ thuộc registry/mirror ngoài. Build đa nền
