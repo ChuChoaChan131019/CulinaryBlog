@@ -17,6 +17,8 @@
     "db:seed": "pnpm --filter backend db:seed",
     "db:verify": "pnpm --filter backend db:verify",
     "docker:up": "docker compose up -d --build",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "docker:prod:up": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
+    "docker:prod:down": "docker compose -f docker-compose.yml -f docker-compose.prod.yml down"
   }
 }
