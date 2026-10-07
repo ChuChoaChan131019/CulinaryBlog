@@ -21,11 +21,32 @@ export interface UploadFile {
   size: number;
 }
 
+export interface StoredObject {
+  buffer: Buffer;
+  contentType: string;
+}
+
+export type RecipeImageVariant = 'medium' | 'thumbnail';
+
+export function variantObjectKey(
+  sourceObjectKey: string,
+  variant: RecipeImageVariant,
+): string {
+  const safeKey = sourceObjectKey.replace(/^\/+/, '').replace(/\.\.+/g, '');
+  const extensionIndex = safeKey.lastIndexOf('.');
+  const base = extensionIndex > safeKey.lastIndexOf('/')
+    ? safeKey.slice(0, extensionIndex)
+    : safeKey;
+  return `${base}-${variant}.webp`;
+}
+
 export interface IFileStorageService {
   uploadAsync(
     file: UploadFile,
     folder: string,
   ): Promise<StoredFile>;
+  readAsync(key: string): Promise<Buffer>;
+  putAsync(key: string, object: StoredObject): Promise<StoredFile>;
   deleteAsync(key: string): Promise<void>;
   isHealthy(): Promise<boolean>;
 }
@@ -80,6 +101,14 @@ export class FileStorageService implements IFileStorageService {
     return this.storage.uploadAsync(file, safeFolder);
   }
 
+  readAsync(key: string): Promise<Buffer> {
+    return this.storage.readAsync(this.sanitizeKey(key));
+  }
+
+  putAsync(key: string, object: StoredObject): Promise<StoredFile> {
+    return this.storage.putAsync(this.sanitizeKey(key), object);
+  }
+
   deleteAsync(key: string): Promise<void> {
     const safeKey = key.replace(/^\/+/, '').replace(/\.\.+/g, '');
     if (!safeKey) return Promise.resolve();
@@ -101,5 +130,16 @@ export class FileStorageService implements IFileStorageService {
 
   isHealthy(): Promise<boolean> {
     return this.storage.isHealthy();
+  }
+
+  private sanitizeKey(key: string): string {
+    const safeKey = key.replace(/^\/+/, '').replace(/\.\.+/g, '');
+    if (!safeKey || safeKey.includes('\\')) {
+      throw new BadRequestException({
+        type: 'VALIDATION_ERROR',
+        detail: 'Object key is invalid.',
+      });
+    }
+    return safeKey;
   }
 }

@@ -17,6 +17,7 @@ import { RecipeIngredientsService } from './recipe-ingredients.service';
 import { MediaModule } from '../media/media.module';
 import { JobsModule } from '../../infrastructure/jobs/jobs.module';
 import { DeleteRecipeHandler } from './commands/delete-recipe.handler';
+import { RecipeImageUploadService } from './recipe-image-upload.service';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { DeleteRecipeHandler } from './commands/delete-recipe.handler';
     OptionalJwtAuthGuard,
     RolesGuard,
     RecipeIngredientsService,
+    RecipeImageUploadService,
   ],
 })
 export class RecipesModule {}

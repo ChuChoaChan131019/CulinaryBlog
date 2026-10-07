@@ -12,9 +12,17 @@ describe('DeleteRecipeHandler', () => {
   };
   const admin = { ...owner, role: 'Admin' as const };
   const recipe = { id: recipeId, authorId: owner.id };
-  const objectKeys = [
+  const sourceObjectKeys = [
     'recipes/recipe-1/original.jpg',
     'recipes/recipe-1/other.png',
+  ];
+  const objectKeys = [
+    sourceObjectKeys[0],
+    'recipes/recipe-1/original-medium.webp',
+    'recipes/recipe-1/original-thumbnail.webp',
+    sourceObjectKeys[1],
+    'recipes/recipe-1/other-medium.webp',
+    'recipes/recipe-1/other-thumbnail.webp',
   ];
 
   function buildHandler() {
@@ -33,7 +41,7 @@ describe('DeleteRecipeHandler', () => {
             where: jest
               .fn()
               .mockResolvedValue(
-                objectKeys.map((objectKey) => ({ objectKey })),
+                sourceObjectKeys.map((objectKey) => ({ objectKey })),
               ),
           };
         }),
