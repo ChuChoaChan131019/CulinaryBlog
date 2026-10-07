@@ -32,12 +32,12 @@ services:
       retries: 5
 
   minio:
-    # minio/minio bị gỡ khỏi Docker Hub (archived 2026-02, xoá image 2026-09-11).
-    # Dùng mirror alphatran/minio trên Docker Hub — chỉ có tag `latest`, không có bản ghim theo version.
-    # Image này chỉ build cho amd64 (không multi-arch) — chạy qua QEMU emulation trên arm64 cũng không
-    # dùng được vì Go runtime của MinIO crash (`fatal error: lfstack.push`) dưới QEMU user-mode, nên
-    # CI chỉ smoke-test docker compose trên Linux amd64 (xem .github/workflows/ci.yml).
-    image: alphatran/minio:latest
+    # image minio/minio trên Docker Hub bị khai tử (archived 2026-02, xoá 2026-09-11) — build thẳng
+    # từ source qua git submodule vendor/minio thay vì phụ thuộc registry/mirror ngoài. Build đa nền
+    # tảng bình thường (không còn giới hạn amd64-only như mirror cũ). Xem vendor/README.md.
+    build:
+      context: .
+      dockerfile: docker/minio/Dockerfile
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -49,7 +49,9 @@ services:
     volumes:
       - minio-data:/data
     healthcheck:
-      test: ['CMD', 'mc', 'ready', 'local']
+      # Build từ source (xem Dockerfile) không đóng gói sẵn `mc` — probe trực tiếp endpoint
+      # health chính thức của MinIO server.
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -73,7 +75,7 @@ services:
       redis:
         condition: service_healthy
       minio:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       # node:22-alpine không có curl/wget — probe bằng http module của Node.
       test:
