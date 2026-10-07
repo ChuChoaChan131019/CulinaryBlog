@@ -11,12 +11,53 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: Lint · Typecheck · Test · Build
-    runs-on: ubuntu-latest
+  # 1 job, matrix chia theo os/arch:
+  # - full (lint/typecheck/test/build) chỉ chạy 1 lần trên ubuntu-latest, các entry còn lại chỉ build
+  #   để xác nhận build được trên nền tảng đó, đỡ tốn runner lặp lại lint/test 6 lần.
+  # - docker chỉ bật trên Linux (amd64/arm64): docker-compose.yml chỉ định nghĩa Linux container
+  #   (postgres/redis/minio/nginx alpine), macOS/Windows hosted runner không chạy được Linux container.
+  #   MinIO build từ source (vendor/minio, git submodule) nên chạy native trên cả 2 kiến trúc,
+  #   không cần QEMU emulation như lúc còn phụ thuộc image amd64-only trên Docker Hub.
+  ci:
+    name: CI (${{ matrix.os }} / ${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+            full: true
+            docker: true
+          - os: ubuntu-24.04-arm
+            arch: arm64
+            full: false
+            docker: true
+          - os: macos-13
+            arch: amd64
+            full: false
+            docker: false
+          - os: macos-latest
+            arch: arm64
+            full: false
+            docker: false
+          - os: windows-latest
+            arch: amd64
+            full: false
+            docker: false
+          # Runner arm64 cho Windows đang ở public preview (miễn phí cho repo public) —
+          # có thể bị GitHub rút lại/đổi label, không block CI chính nếu entry này fail.
+          - os: windows-11-arm
+            arch: arm64
+            full: false
+            docker: false
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'windows-11-arm' }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # vendor/minio là git submodule (source MinIO, build image minio ở docker/minio/Dockerfile).
+          submodules: recursive
 
       - uses: pnpm/action-setup@v4
 
@@ -28,13 +69,36 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Lint (backend + frontend)
+        if: matrix.full
         run: pnpm lint
 
       - name: Typecheck (shared + backend + frontend)
+        if: matrix.full
         run: pnpm typecheck
 
       - name: Test (backend jest + frontend vitest)
+        if: matrix.full
         run: pnpm test
 
       - name: Build (backend + frontend)
         run: pnpm build
+
+      - name: Tạo .env từ mẫu
+        if: matrix.docker
+        run: cp .env.example .env
+
+      - name: docker compose up --build
+        if: matrix.docker
+        run: docker compose up --build -d --wait
+
+      - name: Kiểm tra /health/ready qua Nginx
+        if: matrix.docker
+        run: curl -fsk https://localhost/api/v1/health/ready
+
+      - name: Log container khi fail
+        if: matrix.docker && failure()
+        run: docker compose logs
+
+      - name: Dọn dẹp docker compose
+        if: matrix.docker && always()
+        run: docker compose down -v

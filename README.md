@@ -19,6 +19,7 @@ Nền tảng chia sẻ công thức nấu ăn — đồ án học phần Phát t
 Yêu cầu: Node >= 20, pnpm 12, Docker.
 
 ```bash
+git submodule update --init --recursive   # vendor/minio — xem vendor/README.md
 pnpm install
 cp .env.example .env
 ```
@@ -78,6 +79,8 @@ packages/
   shared/    # @culinary/shared — DTO types dùng chung BE <-> FE
   config/    # tsconfig.base.json
 nginx/       # reverse proxy config
+docker/minio/  # Dockerfile build MinIO server từ source
+vendor/minio/  # git submodule — source MinIO (xem vendor/README.md)
 ```
 
 ## License
