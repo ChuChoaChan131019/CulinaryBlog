@@ -11,54 +11,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: Lint · Typecheck · Test · Build
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Lint (backend + frontend)
-        run: pnpm lint
-
-      - name: Typecheck (shared + backend + frontend)
-        run: pnpm typecheck
-
-      - name: Test (backend jest + frontend vitest)
-        run: pnpm test
-
-      - name: Build (backend + frontend)
-        run: pnpm build
-
-  build-matrix:
-    name: Build (${{ matrix.os }} / ${{ matrix.arch }})
+  # 1 job, matrix chia theo os/arch:
+  # - full (lint/typecheck/test/build) chỉ chạy 1 lần trên ubuntu-latest, các entry còn lại chỉ build
+  #   để xác nhận build được trên nền tảng đó, đỡ tốn runner lặp lại lint/test 6 lần.
+  # - docker chỉ bật trên Linux (amd64/arm64): docker-compose.yml chỉ định nghĩa Linux container
+  #   (postgres/redis/minio/nginx alpine), macOS/Windows hosted runner không chạy được Linux container.
+  ci:
+    name: CI (${{ matrix.os }} / ${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             arch: amd64
+            full: true
+            docker: true
           - os: ubuntu-24.04-arm
             arch: arm64
+            full: false
+            docker: true
           - os: macos-13
             arch: amd64
+            full: false
+            docker: false
           - os: macos-latest
             arch: arm64
+            full: false
+            docker: false
           - os: windows-latest
             arch: amd64
+            full: false
+            docker: false
           # Runner arm64 cho Windows đang ở public preview (miễn phí cho repo public) —
-          # có thể bị GitHub rút lại/đổi label, không block CI chính nếu job này fail.
+          # có thể bị GitHub rút lại/đổi label, không block CI chính nếu entry này fail.
           - os: windows-11-arm
             arch: arm64
+            full: false
+            docker: false
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.os == 'windows-11-arm' }}
 
@@ -74,40 +63,41 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Lint (backend + frontend)
+        if: matrix.full
+        run: pnpm lint
+
+      - name: Typecheck (shared + backend + frontend)
+        if: matrix.full
+        run: pnpm typecheck
+
+      - name: Test (backend jest + frontend vitest)
+        if: matrix.full
+        run: pnpm test
+
       - name: Build (backend + frontend)
         run: pnpm build
 
-  # docker compose của repo chỉ định nghĩa Linux container (postgres/redis/minio/nginx alpine) —
-  # macOS và Windows hosted runner không chạy được Linux container nên chỉ test trên Linux amd64/arm64,
-  # đúng với nền tảng thật sẽ deploy (xem docker-compose.yml, nginx/Dockerfile).
-  docker-matrix:
-    name: Docker compose (${{ matrix.arch }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            arch: amd64
-          - os: ubuntu-24.04-arm
-            arch: arm64
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - uses: actions/checkout@v4
+      - name: Setup QEMU (chạy image minio amd64-only qua emulation trên arm64)
+        if: matrix.docker && matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
 
       - name: Tạo .env từ mẫu
+        if: matrix.docker
         run: cp .env.example .env
 
       - name: docker compose up --build
+        if: matrix.docker
         run: docker compose up --build -d --wait
 
       - name: Kiểm tra /health/ready qua Nginx
+        if: matrix.docker
         run: curl -fsk https://localhost/api/v1/health/ready
 
       - name: Log container khi fail
-        if: failure()
+        if: matrix.docker && failure()
         run: docker compose logs
 
-      - name: Dọn dẹp
-        if: always()
+      - name: Dọn dẹp docker compose
+        if: matrix.docker && always()
         run: docker compose down -v

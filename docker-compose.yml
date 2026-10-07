@@ -34,7 +34,10 @@ services:
   minio:
     # minio/minio bị gỡ khỏi Docker Hub (archived 2026-02, xoá image 2026-09-11).
     # Dùng mirror alphatran/minio trên Docker Hub — chỉ có tag `latest`, không có bản ghim theo version.
+    # Image này chỉ build cho amd64 — ghim platform để Docker chạy qua QEMU emulation trên host arm64
+    # (xem bước setup-qemu-action trong CI) thay vì "exec format error".
     image: alphatran/minio:latest
+    platform: linux/amd64
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -71,6 +74,19 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+    healthcheck:
+      # node:22-alpine không có curl/wget — probe bằng http module của Node.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://127.0.0.1:5000/api/v1/health/live',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   frontend:
     build:
@@ -90,7 +106,20 @@ services:
     ports:
       - '${FRONTEND_PORT:-3000}:3000'
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://127.0.0.1:3000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   nginx:
     build:
@@ -102,8 +131,10 @@ services:
     volumes:
       - nginx-certs:/etc/nginx/certs
     depends_on:
-      - backend
-      - frontend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
 
 volumes:
   postgres-data:
