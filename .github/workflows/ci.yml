@@ -83,9 +83,9 @@ jobs:
         if: matrix.docker
         run: cp .env.example .env
 
-      - name: docker compose up --build
+      - name: docker compose up --build (full stack, dev + prod overlay)
         if: matrix.docker
-        run: docker compose up --build -d --wait
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d --wait
 
       - name: Kiểm tra /health/ready qua Nginx
         if: matrix.docker
@@ -93,8 +93,8 @@ jobs:
 
       - name: Log container khi fail
         if: matrix.docker && failure()
-        run: docker compose logs
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml logs
 
       - name: Dọn dẹp docker compose
         if: matrix.docker && always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml down -v
