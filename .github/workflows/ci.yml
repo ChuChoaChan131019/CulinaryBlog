@@ -14,8 +14,9 @@ jobs:
   # 1 job, matrix chia theo os/arch:
   # - full (lint/typecheck/test/build) chỉ chạy 1 lần trên ubuntu-latest, các entry còn lại chỉ build
   #   để xác nhận build được trên nền tảng đó, đỡ tốn runner lặp lại lint/test 6 lần.
-  # - docker chỉ bật trên Linux (amd64/arm64): docker-compose.yml chỉ định nghĩa Linux container
-  #   (postgres/redis/minio/nginx alpine), macOS/Windows hosted runner không chạy được Linux container.
+  # - docker chỉ bật trên Linux amd64: docker-compose.yml chỉ định nghĩa Linux container
+  #   (postgres/redis/minio/nginx alpine), macOS/Windows hosted runner không chạy được Linux container,
+  #   và arm64 không chạy được do image minio chỉ build amd64 (xem ghi chú ở docker-compose.yml).
   ci:
     name: CI (${{ matrix.os }} / ${{ matrix.arch }})
     strategy:
@@ -29,7 +30,9 @@ jobs:
           - os: ubuntu-24.04-arm
             arch: arm64
             full: false
-            docker: true
+            # Image minio (alphatran/minio) chỉ build amd64; QEMU emulation cũng không dùng được vì
+            # Go runtime của MinIO crash dưới user-mode QEMU — nên arm64 chỉ build, không chạy docker compose.
+            docker: false
           - os: macos-13
             arch: amd64
             full: false
@@ -77,10 +80,6 @@ jobs:
 
       - name: Build (backend + frontend)
         run: pnpm build
-
-      - name: Setup QEMU (chạy image minio amd64-only qua emulation trên arm64)
-        if: matrix.docker && matrix.arch == 'arm64'
-        uses: docker/setup-qemu-action@v3
 
       - name: Tạo .env từ mẫu
         if: matrix.docker
