@@ -86,6 +86,7 @@ export class UpdateRecipeHandler implements ICommandHandler<
               eq(categories.isDeleted, false),
             ),
           )
+          .for('share')
           .limit(1);
 
         if (!category) {

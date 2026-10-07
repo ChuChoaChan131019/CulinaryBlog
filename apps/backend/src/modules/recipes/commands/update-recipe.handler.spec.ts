@@ -87,7 +87,9 @@ describe('UpdateRecipeHandler', () => {
       const terminal = {
         limit: jest.fn().mockResolvedValue(result),
         orderBy: jest.fn().mockResolvedValue(result),
+        for: jest.fn(),
       };
+      terminal.for.mockReturnValue(terminal);
       return {
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue(terminal),

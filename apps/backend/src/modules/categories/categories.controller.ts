@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Post,
   Query,
   Res,
@@ -27,6 +30,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateCategoryCommand } from './commands/create-category.command';
+import { DeleteCategoryCommand } from './commands/delete-category.command';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { GetCategoriesQuery } from './queries/get-categories.query';
 import {
@@ -86,6 +90,22 @@ export class CategoriesController {
 
     response.setHeader('Location', `/api/v1/categories/${result.slug}`);
     return result;
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin')
+  @ApiBearerAuth()
+  async delete(
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    await this.commandBus.execute(new DeleteCategoryCommand(id, user));
   }
 
   @Get(':slug')

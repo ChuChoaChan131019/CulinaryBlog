@@ -60,7 +60,11 @@ describe('CreateRecipeHandler', () => {
     updatedAt: null,
   };
 
-  function buildDb(selectResults: unknown[][], transactionError?: unknown) {
+  function buildDb(
+    slugSelectResults: unknown[][],
+    categorySelectResults: unknown[][] = [[{ id: command.categoryId }]],
+    transactionError?: unknown,
+  ) {
     const recipeValues = jest.fn().mockReturnValue({
       returning: jest.fn().mockResolvedValue([createdRecipe]),
     });
@@ -86,6 +90,17 @@ describe('CreateRecipeHandler', () => {
       ]),
     });
     const tx = {
+      select: jest.fn(() => ({
+        from: jest.fn(() => ({
+          where: jest.fn(() => ({
+            for: jest.fn(() => ({
+              limit: jest
+                .fn()
+                .mockResolvedValue(categorySelectResults.shift() ?? []),
+            })),
+          })),
+        })),
+      })),
       insert: jest.fn((table: unknown) => {
         if (table === recipes) return { values: recipeValues };
         if (table === recipeSteps) return { values: stepValues };
@@ -97,7 +112,9 @@ describe('CreateRecipeHandler', () => {
       select: jest.fn().mockImplementation(() => ({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
-            limit: jest.fn().mockResolvedValue(selectResults.shift() ?? []),
+            limit: jest
+              .fn()
+              .mockResolvedValue(slugSelectResults.shift() ?? []),
           }),
         }),
       })),
@@ -119,7 +136,6 @@ describe('CreateRecipeHandler', () => {
 
   it('tạo recipe ở trạng thái Draft cùng dữ liệu con trong một transaction', async () => {
     const { db, recipeValues, stepValues, ingredientValues } = buildDb([
-      [{ id: command.categoryId }],
       [],
     ]);
     const cache = buildCache();
@@ -151,7 +167,6 @@ describe('CreateRecipeHandler', () => {
 
   it('tự thêm hậu tố tăng dần khi slug đã tồn tại', async () => {
     const { db, recipeValues } = buildDb([
-      [{ id: command.categoryId }],
       [{ id: 'existing' }],
       [],
     ]);
@@ -165,13 +180,13 @@ describe('CreateRecipeHandler', () => {
   });
 
   it('trả 422 khi categoryId không tồn tại hoặc đã bị xóa', async () => {
-    const { db } = buildDb([[]]);
+    const { db } = buildDb([[]], [[]]);
     const handler = new CreateRecipeHandler(db as never, buildCache());
 
     await expect(handler.execute(command)).rejects.toBeInstanceOf(
       UnprocessableEntityException,
     );
-    expect(db.transaction).not.toHaveBeenCalled();
+    expect(db.transaction).toHaveBeenCalled();
   });
 
   it('trả RECIPE_SLUG_EXISTS khi có tranh chấp unique slug đồng thời', async () => {
@@ -179,7 +194,7 @@ describe('CreateRecipeHandler', () => {
       code: '23505',
       constraint: 'recipes_slug_unique',
     });
-    const { db } = buildDb([[{ id: command.categoryId }], []], databaseError);
+    const { db } = buildDb([[]], [[{ id: command.categoryId }]], databaseError);
     const handler = new CreateRecipeHandler(db as never, buildCache());
 
     const promise = handler.execute(command);
