@@ -31,30 +31,31 @@ export class CreateRecipeHandler implements ICommandHandler<
   ) {}
 
   async execute(command: CreateRecipeCommand): Promise<RecipeDto> {
-    const [category] = await this.db
-      .select({ id: categories.id })
-      .from(categories)
-      .where(
-        and(
-          eq(categories.id, command.categoryId),
-          eq(categories.isDeleted, false),
-        ),
-      )
-      .limit(1);
-
-    if (!category) {
-      throw new UnprocessableEntityException({
-        type: 'CATEGORY_NOT_FOUND',
-        title: 'Danh mục không tồn tại',
-        status: 422,
-        detail: 'categoryId không trỏ tới danh mục hợp lệ',
-      });
-    }
-
     const slug = await this.createUniqueSlug(command.title);
 
     try {
       const result = await this.db.transaction(async (tx) => {
+        const [category] = await tx
+          .select({ id: categories.id })
+          .from(categories)
+          .where(
+            and(
+              eq(categories.id, command.categoryId),
+              eq(categories.isDeleted, false),
+            ),
+          )
+          .for('share')
+          .limit(1);
+
+        if (!category) {
+          throw new UnprocessableEntityException({
+            type: 'CATEGORY_NOT_FOUND',
+            title: 'Danh mục không tồn tại',
+            status: 422,
+            detail: 'categoryId không trỏ tới danh mục hợp lệ',
+          });
+        }
+
         const [created] = await tx
           .insert(recipes)
           .values({
