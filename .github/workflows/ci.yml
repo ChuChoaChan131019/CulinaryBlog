@@ -38,3 +38,76 @@ jobs:
 
       - name: Build (backend + frontend)
         run: pnpm build
+
+  build-matrix:
+    name: Build (${{ matrix.os }} / ${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+          - os: macos-13
+            arch: amd64
+          - os: macos-latest
+            arch: arm64
+          - os: windows-latest
+            arch: amd64
+          # Runner arm64 cho Windows đang ở public preview (miễn phí cho repo public) —
+          # có thể bị GitHub rút lại/đổi label, không block CI chính nếu job này fail.
+          - os: windows-11-arm
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'windows-11-arm' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build (backend + frontend)
+        run: pnpm build
+
+  # docker compose của repo chỉ định nghĩa Linux container (postgres/redis/minio/nginx alpine) —
+  # macOS và Windows hosted runner không chạy được Linux container nên chỉ test trên Linux amd64/arm64,
+  # đúng với nền tảng thật sẽ deploy (xem docker-compose.yml, nginx/Dockerfile).
+  docker-matrix:
+    name: Docker compose (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tạo .env từ mẫu
+        run: cp .env.example .env
+
+      - name: docker compose up --build
+        run: docker compose up --build -d --wait
+
+      - name: Kiểm tra /health/ready qua Nginx
+        run: curl -fsk https://localhost/api/v1/health/ready
+
+      - name: Log container khi fail
+        if: failure()
+        run: docker compose logs
+
+      - name: Dọn dẹp
+        if: always()
+        run: docker compose down -v
