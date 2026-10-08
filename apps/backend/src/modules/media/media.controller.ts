@@ -1,9 +1,9 @@
-import { BadRequestException, Controller, Delete, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Controller, Delete, HttpCode, HttpStatus, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
 import { FileStorageService, UploadFile } from './file-storage.service';
 
 @ApiTags('media')
@@ -21,9 +21,10 @@ export class MediaController {
     return this.fileStorage.uploadAsync(file, 'uploads');
   }
 
-  @Delete()
-  delete(@Query('key') key?: string) {
-    if (!key) throw new BadRequestException({ type: 'VALIDATION_ERROR', detail: 'A file key is required.' });
-    return this.fileStorage.deleteAsync(key);
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  delete(@Param('id') id: string) {
+    if (!id) throw new BadRequestException({ type: 'VALIDATION_ERROR', detail: 'A file id is required.' });
+    return this.fileStorage.deleteAsync(decodeURIComponent(id));
   }
 }

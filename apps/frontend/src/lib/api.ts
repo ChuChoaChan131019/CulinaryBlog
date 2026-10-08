@@ -102,6 +102,21 @@ export function buildUrl(path: string, params?: Record<string, string | number |
   return url;
 }
 
+/** Chuẩn bị header cho request JSON và multipart mà không phá boundary của FormData. */
+export function requestHeaders(init: RequestInit = {}, accessToken?: string): Headers {
+  const headers = new Headers(init.headers);
+  headers.set('Accept', 'application/json');
+  if (
+    init.body &&
+    !(typeof FormData !== 'undefined' && init.body instanceof FormData) &&
+    !headers.has('Content-Type')
+  ) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
+  return headers;
+}
+
 export async function apiGet<T>(
   path: string,
   params?: Record<string, string | number | undefined>,
