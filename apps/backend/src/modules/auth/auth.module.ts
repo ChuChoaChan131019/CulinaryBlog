@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { JobsModule } from '../../infrastructure/jobs/jobs.module';
 import { AuthController } from './auth.controller';
 import { GoogleLoginHandler } from './commands/google-login.handler';
 import { LoginHandler } from './commands/login.handler';
@@ -27,6 +28,7 @@ const QueryHandlers = [GetMeHandler];
 @Module({
   imports: [
     CqrsModule,
+    JobsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
