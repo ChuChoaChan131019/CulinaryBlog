@@ -8,6 +8,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   Res,
   UseGuards,
@@ -21,6 +22,8 @@ import {
   CategoryDto,
   CreateCategoryRequest,
   CreatedCategoryDto,
+  UpdatedCategoryDto,
+  UpdateCategoryRequest,
 } from '@culinary/shared';
 import type { Response } from 'express';
 import { AuthenticatedUser } from '../../common/auth/authenticated-user';
@@ -31,7 +34,9 @@ import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guar
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateCategoryCommand } from './commands/create-category.command';
 import { DeleteCategoryCommand } from './commands/delete-category.command';
+import { UpdateCategoryCommand } from './commands/update-category.command';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { GetCategoriesQuery } from './queries/get-categories.query';
 import {
   GetCategoryBySlugQueryDto,
@@ -90,6 +95,48 @@ export class CategoriesController {
 
     response.setHeader('Location', `/api/v1/categories/${result.slug}`);
     return result;
+  }
+
+  @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin')
+  @ApiBearerAuth()
+  async update(
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @Body(
+      new ValidationPipe({
+        expectedType: UpdateCategoryDto,
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        exceptionFactory: (errors) =>
+          new UnprocessableEntityException({
+            type: 'about:blank',
+            title: 'Dữ liệu không hợp lệ',
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            detail: 'VALIDATION_ERROR',
+            errors: Object.fromEntries(
+              errors
+                .filter((error) => error.constraints)
+                .map((error) => [
+                  error.property,
+                  Object.values(error.constraints!),
+                ]),
+            ),
+          }),
+        transform: true,
+        whitelist: true,
+      }),
+    )
+    dto: UpdateCategoryRequest,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<UpdatedCategoryDto> {
+    return this.commandBus.execute<
+      UpdateCategoryCommand,
+      UpdatedCategoryDto
+    >(new UpdateCategoryCommand(id, user, dto));
   }
 
   @Delete(':id')
