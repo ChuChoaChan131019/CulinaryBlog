@@ -88,7 +88,7 @@ describe('GetRecipesHandler', () => {
       ),
     ).resolves.toEqual(cached);
     expect(cache.get).toHaveBeenCalledWith(
-      `recipes:list:Author:${row.authorId}:2:12:${row.categoryId}:Medium:30:-cookTime`,
+      `recipes:list:Author:${row.authorId}:2:12:${row.categoryId}:Medium:30:-:-cookTime`,
       900,
     );
     expect(db.select).not.toHaveBeenCalled();
@@ -130,7 +130,7 @@ describe('GetRecipesHandler', () => {
       hasPreviousPage: true,
     });
     expect(cache.set).toHaveBeenCalledWith(
-      `recipes:list:Guest:2:12:${row.categoryId}:Medium:30:-cookTime`,
+      `recipes:list:Guest:2:12:${row.categoryId}:Medium:30:-:-cookTime`,
       result,
       900,
     );
@@ -228,7 +228,7 @@ describe('GetRecipesHandler', () => {
       row.categoryId,
     ]);
     expect(cache.set).toHaveBeenCalledWith(
-      `recipes:list:Author:${row.authorId}:Draft:1:12:${row.categoryId}:-:-:-createdAt`,
+      `recipes:list:Author:${row.authorId}:Draft:1:12:${row.categoryId}:-:-:-:-createdAt`,
       expect.any(Object),
       900,
     );

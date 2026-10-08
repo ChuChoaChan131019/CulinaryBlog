@@ -22,7 +22,11 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { PagedResult, RecipeSummaryDto } from '@culinary/shared';
+import {
+  PagedResult,
+  RecipeSearchResultDto,
+  RecipeSummaryDto,
+} from '@culinary/shared';
 import type { Response } from 'express';
 import { AuthenticatedUser } from '../../common/auth/authenticated-user';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -43,7 +47,12 @@ import {
   GetRecipesQueryDto,
   GetRecipesQueryParams,
 } from './dto/get-recipes-query.dto';
+import {
+  SearchRecipesQueryDto,
+  SearchRecipesQueryParams,
+} from './dto/search-recipes-query.dto';
 import { GetRecipesQuery } from './queries/get-recipes.query';
+import { SearchRecipesQuery } from './queries/search-recipes.query';
 import { RecipeIngredientsService } from './recipe-ingredients.service';
 import {
   CreateRecipeIngredientDto,
@@ -70,6 +79,21 @@ export class RecipesController {
     private readonly recipeSteps: RecipeStepsService,
     private readonly recipeDetails: RecipeDetailsService,
   ) {}
+
+  @Get('search')
+  search(
+    @Query(
+      new ValidationPipe({
+        expectedType: SearchRecipesQueryDto,
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+        whitelist: true,
+      }),
+    )
+    query: SearchRecipesQueryParams,
+  ): Promise<PagedResult<RecipeSearchResultDto>> {
+    return this.queryBus.execute(new SearchRecipesQuery(query));
+  }
 
   @Get(':slug')
   @UseGuards(OptionalJwtAuthGuard)

@@ -22,12 +22,14 @@ describe('GetRecipesQueryDto', () => {
       categoryId: 'f8050eb8-9d4b-4ce6-a94f-68b590119185',
       difficulty: RecipeListDifficulty.Medium,
       maxCookTime: '45',
+      minServings: '2',
       sort: 'title',
     });
 
     await expect(validate(dto)).resolves.toHaveLength(0);
     expect(dto.page).toBe(2);
     expect(dto.maxCookTime).toBe(45);
+    expect(dto.minServings).toBe(2);
   });
 
   it('từ chối phân trang, bộ lọc và cách sắp xếp không hợp lệ', async () => {
@@ -37,6 +39,7 @@ describe('GetRecipesQueryDto', () => {
       categoryId: 'not-a-uuid',
       difficulty: 'Impossible',
       maxCookTime: '-1',
+      minServings: '0',
       sort: 'rating',
     });
 
@@ -49,6 +52,7 @@ describe('GetRecipesQueryDto', () => {
         'categoryId',
         'difficulty',
         'maxCookTime',
+        'minServings',
         'sort',
       ]),
     );

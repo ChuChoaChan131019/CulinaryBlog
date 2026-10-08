@@ -3,19 +3,19 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsOptional,
+  IsString,
   IsUUID,
   Max,
+  MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
+import { RecipeListDifficulty } from './get-recipes-query.dto';
 
-export enum RecipeListDifficulty {
-  Easy = 'Easy',
-  Medium = 'Medium',
-  Hard = 'Hard',
-}
-
-export const RECIPE_SORT_VALUES = [
+export const SEARCH_SORT_VALUES = [
+  'relevance',
   'createdAt',
   '-createdAt',
   'title',
@@ -24,9 +24,16 @@ export const RECIPE_SORT_VALUES = [
   '-cookTime',
 ] as const;
 
-export type RecipeSort = (typeof RECIPE_SORT_VALUES)[number];
+export type SearchRecipeSort = (typeof SEARCH_SORT_VALUES)[number];
 
-export class GetRecipesQueryDto {
+export class SearchRecipesQueryDto {
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(200)
+  q!: string;
+
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -65,16 +72,17 @@ export class GetRecipesQueryDto {
   minServings?: number;
 
   @IsOptional()
-  @IsIn(RECIPE_SORT_VALUES)
-  sort: RecipeSort = '-createdAt';
+  @IsIn(SEARCH_SORT_VALUES)
+  sort: SearchRecipeSort = 'relevance';
 }
 
-export interface GetRecipesQueryParams {
+export interface SearchRecipesQueryParams {
+  q: string;
   page: number;
   pageSize: number;
   categoryId?: string;
   difficulty?: RecipeListDifficulty;
   maxCookTime?: number;
   minServings?: number;
-  sort: RecipeSort;
+  sort: SearchRecipeSort;
 }

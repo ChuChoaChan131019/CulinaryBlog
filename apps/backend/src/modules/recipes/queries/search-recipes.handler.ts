@@ -1,6 +1,6 @@
-import { Inject } from '@nestjs/common';
+import { Inject, UnprocessableEntityException } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { PagedResult, RecipeSummaryDto } from '@culinary/shared';
+import { PagedResult, RecipeSearchResultDto } from '@culinary/shared';
 import {
   SQL,
   and,
@@ -9,12 +9,9 @@ import {
   desc,
   eq,
   gte,
-  inArray,
   lte,
-  or,
   sql,
 } from 'drizzle-orm';
-import { CacheService } from '../../../infrastructure/cache/cache.service';
 import {
   DATABASE_CONNECTION,
   Database,
@@ -24,33 +21,48 @@ import {
   recipes,
   users,
 } from '../../../infrastructure/database/schema';
-import { RecipeSort } from '../dto/get-recipes-query.dto';
-import { GetRecipesQuery } from './get-recipes.query';
+import {
+  SearchRecipeSort,
+  SearchRecipesQueryParams,
+} from '../dto/search-recipes-query.dto';
+import { SearchRecipesQuery } from './search-recipes.query';
 
-const CACHE_TTL_SECONDS = 15 * 60;
+export function buildSearchTsQuery(value: string): string {
+  const terms = value.match(/[\p{L}\p{N}]+/gu) ?? [];
+  if (terms.length === 0) {
+    throw new UnprocessableEntityException({
+      type: 'SEARCH_QUERY_INVALID',
+      title: 'Từ khóa tìm kiếm không hợp lệ',
+      status: 422,
+      detail: 'Từ khóa phải chứa ít nhất một chữ cái hoặc chữ số',
+    });
+  }
 
-@QueryHandler(GetRecipesQuery)
-export class GetRecipesHandler implements IQueryHandler<
-  GetRecipesQuery,
-  PagedResult<RecipeSummaryDto>
+  return terms.map((term) => `${term}:*`).join(' & ');
+}
+
+@QueryHandler(SearchRecipesQuery)
+export class SearchRecipesHandler implements IQueryHandler<
+  SearchRecipesQuery,
+  PagedResult<RecipeSearchResultDto>
 > {
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: Database,
-    private readonly cache: CacheService,
   ) {}
 
   async execute(
-    query: GetRecipesQuery,
-  ): Promise<PagedResult<RecipeSummaryDto>> {
+    query: SearchRecipesQuery,
+  ): Promise<PagedResult<RecipeSearchResultDto>> {
     const { params } = query;
-    const cacheKey = this.createCacheKey(query);
-    const cached = await this.cache.get<PagedResult<RecipeSummaryDto>>(
-      cacheKey,
-      CACHE_TTL_SECONDS,
+    const tsQuery = sql`to_tsquery('culinary_search', ${buildSearchTsQuery(params.q)})`;
+    const relevanceScore = sql<number>`ts_rank(${recipes.searchVector}, ${tsQuery})`;
+    const where = and(
+      eq(recipes.isDeleted, false),
+      eq(recipes.status, 'Published'),
+      sql`${recipes.searchVector} @@ ${tsQuery}`,
+      ...this.createFilterConditions(params),
     );
-    if (cached !== null) return cached;
 
-    const where = and(...this.createConditions(query));
     const [{ totalCount }] = await this.db
       .select({ totalCount: count() })
       .from(recipes)
@@ -76,16 +88,17 @@ export class GetRecipesHandler implements IQueryHandler<
         categorySlug: categories.slug,
         publishedAt: recipes.publishedAt,
         createdAt: recipes.createdAt,
+        relevanceScore,
       })
       .from(recipes)
       .innerJoin(users, eq(recipes.authorId, users.id))
       .innerJoin(categories, eq(recipes.categoryId, categories.id))
       .where(where)
-      .orderBy(this.createOrder(params.sort), asc(recipes.id))
+      .orderBy(...this.createOrder(params.sort, relevanceScore))
       .limit(params.pageSize)
       .offset((params.page - 1) * params.pageSize);
 
-    const items: RecipeSummaryDto[] = rows.map((row) => ({
+    const items: RecipeSearchResultDto[] = rows.map((row) => ({
       id: row.id,
       title: row.title,
       slug: row.slug,
@@ -108,9 +121,11 @@ export class GetRecipesHandler implements IQueryHandler<
       },
       publishedAt: row.publishedAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
+      relevanceScore: row.relevanceScore,
     }));
+
     const totalPages = Math.ceil(totalCount / params.pageSize);
-    const result: PagedResult<RecipeSummaryDto> = {
+    return {
       items,
       totalCount,
       page: params.page,
@@ -119,28 +134,10 @@ export class GetRecipesHandler implements IQueryHandler<
       hasNextPage: params.page < totalPages,
       hasPreviousPage: params.page > 1,
     };
-
-    await this.cache.set(cacheKey, result, CACHE_TTL_SECONDS);
-    return result;
   }
 
-  private createConditions(query: GetRecipesQuery): SQL[] {
-    const { params, user, ownerStatuses } = query;
-    const conditions: SQL[] = [eq(recipes.isDeleted, false)];
-
-    if (user?.role !== 'Admin') {
-      conditions.push(
-        user
-          ? or(
-              eq(recipes.status, 'Published'),
-              and(
-                eq(recipes.authorId, user.id),
-                inArray(recipes.status, ownerStatuses),
-              ),
-            )!
-          : eq(recipes.status, 'Published'),
-      );
-    }
+  private createFilterConditions(params: SearchRecipesQueryParams): SQL[] {
+    const conditions: SQL[] = [];
     if (params.categoryId) {
       conditions.push(eq(recipes.categoryId, params.categoryId));
     }
@@ -153,11 +150,14 @@ export class GetRecipesHandler implements IQueryHandler<
     if (params.minServings !== undefined) {
       conditions.push(gte(recipes.servings, params.minServings));
     }
-
     return conditions;
   }
 
-  private createOrder(sort: RecipeSort): SQL {
+  private createOrder(sort: SearchRecipeSort, relevanceScore: SQL): SQL[] {
+    if (sort === 'relevance') {
+      return [desc(relevanceScore), asc(recipes.id)];
+    }
+
     const descending = sort.startsWith('-');
     const field = descending ? sort.slice(1) : sort;
     const column =
@@ -167,32 +167,6 @@ export class GetRecipesHandler implements IQueryHandler<
           ? recipes.cookTime
           : recipes.createdAt;
 
-    return descending ? desc(column) : asc(column);
-  }
-
-  private createCacheKey(query: GetRecipesQuery): string {
-    const { params, user, ownerStatuses } = query;
-    const visibility =
-      user?.role === 'Admin'
-        ? 'Admin'
-        : user
-          ? `Author:${user.id}${
-              ownerStatuses.join(',') === 'Draft,Archived'
-                ? ''
-                : `:${ownerStatuses.join(',')}`
-            }`
-          : 'Guest';
-
-    return [
-      'recipes:list',
-      visibility,
-      params.page,
-      params.pageSize,
-      params.categoryId ?? '-',
-      params.difficulty ?? '-',
-      params.maxCookTime ?? '-',
-      params.minServings ?? '-',
-      params.sort,
-    ].join(':');
+    return [descending ? desc(column) : asc(column), asc(recipes.id)];
   }
 }

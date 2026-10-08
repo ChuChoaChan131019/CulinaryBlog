@@ -43,6 +43,10 @@ export interface RecipeSummaryDto {
   createdAt: string;
 }
 
+export interface RecipeSearchResultDto extends RecipeSummaryDto {
+  relevanceScore: number;
+}
+
 export interface RecipeDetailDto extends RecipeSummaryDto {
   description: string | null;
   ingredients: RecipeIngredientDto[];

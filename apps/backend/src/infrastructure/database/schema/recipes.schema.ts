@@ -1,5 +1,6 @@
 import {
   boolean,
+  customType,
   decimal,
   integer,
   index,
@@ -28,6 +29,10 @@ export const recipeDifficultyEnum = pgEnum('recipe_difficulty', [
   'Hard',
 ]);
 
+const tsvector = customType<{ data: string }>({
+  dataType: () => 'tsvector',
+});
+
 export const recipes = pgTable('recipes', {
   ...baseColumns,
   title: varchar('title', { length: 200 }).notNull(),
@@ -55,7 +60,12 @@ export const recipes = pgTable('recipes', {
   nutritionFat: decimal('nutrition_fat', { precision: 8, scale: 2 }),
   nutritionFiber: decimal('nutrition_fiber', { precision: 8, scale: 2 }),
   nutritionSodium: decimal('nutrition_sodium', { precision: 8, scale: 2 }),
-});
+  searchVector: tsvector('search_vector'),
+}, (table) => [
+  index('recipes_search_vector_gin_idx')
+    .using('gin', table.searchVector)
+    .where(sql`${table.status} = 'Published' AND ${table.isDeleted} = false`),
+]);
 
 export const recipeSteps = pgTable(
   'recipe_steps',
