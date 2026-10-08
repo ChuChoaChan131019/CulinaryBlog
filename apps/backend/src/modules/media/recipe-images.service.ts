@@ -15,13 +15,21 @@ import {
   recipeImages,
   recipes,
 } from '../../infrastructure/database/schema';
-import { FileStorageService, UploadFile } from './file-storage.service';
+import {
+  FileStorageService,
+  UploadFile,
+  variantObjectKey,
+} from './file-storage.service';
 
 export interface RecipeImageResponse {
   imageId: string;
   originalUrl: string;
   altText: string | null;
   isPrimary: boolean;
+}
+
+export interface RecipeImageUploadResponse extends RecipeImageResponse {
+  objectKey: string;
 }
 
 @Injectable()
@@ -36,7 +44,7 @@ export class RecipeImagesService {
     user: AuthenticatedUser,
     file: UploadFile,
     altText?: string,
-  ): Promise<RecipeImageResponse> {
+  ): Promise<RecipeImageUploadResponse> {
     const normalizedAltText = this.normalizeAltText(altText);
     const recipe = await this.getOwnedRecipe(recipeId, user);
     const stored = await this.fileStorage.uploadAsync(file, `recipes/${recipe.id}`);
@@ -65,7 +73,7 @@ export class RecipeImagesService {
           .returning();
         if (!image) throw new Error('Recipe image insert returned no row.');
 
-        return this.toResponse(image);
+        return { ...this.toResponse(image), objectKey: image.objectKey };
       });
     } catch (error) {
       await this.fileStorage.deleteAsync(stored.key).catch(() => undefined);
@@ -159,7 +167,11 @@ export class RecipeImagesService {
 
     // DB deletion is already committed. Storage cleanup is best effort so a
     // transient MinIO failure does not turn a successful DELETE into a 500.
-    await this.fileStorage.deleteAsync(deleted.objectKey).catch(() => undefined);
+    await Promise.all([
+      deleted.objectKey,
+      variantObjectKey(deleted.objectKey, 'medium'),
+      variantObjectKey(deleted.objectKey, 'thumbnail'),
+    ].map((key) => this.fileStorage.deleteAsync(key).catch(() => undefined)));
   }
 
   private async getOwnedRecipe(recipeId: string, user: AuthenticatedUser) {

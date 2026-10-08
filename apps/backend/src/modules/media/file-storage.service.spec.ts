@@ -1,5 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
-import { hasValidMagicBytes, MAX_FILE_SIZE, validateUpload } from './file-storage.service';
+import {
+  hasValidMagicBytes,
+  MAX_FILE_SIZE,
+  validateUpload,
+  variantObjectKey,
+} from './file-storage.service';
 
 describe('file upload validation', () => {
   it('accepts valid PNG magic bytes', () => {
@@ -14,5 +19,14 @@ describe('file upload validation', () => {
   it('rejects files larger than 5MB', () => {
     expect(() => validateUpload({ buffer: Buffer.alloc(1), mimetype: 'image/png', size: MAX_FILE_SIZE + 1 }))
       .toThrow(BadRequestException);
+  });
+
+  it('tạo key deterministic cho các biến thể ảnh', () => {
+    expect(variantObjectKey('recipes/recipe-1/image.jpg', 'medium')).toBe(
+      'recipes/recipe-1/image-medium.webp',
+    );
+    expect(variantObjectKey('recipes/recipe-1/image.jpg', 'thumbnail')).toBe(
+      'recipes/recipe-1/image-thumbnail.webp',
+    );
   });
 });

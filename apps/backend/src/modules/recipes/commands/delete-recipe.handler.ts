@@ -14,6 +14,7 @@ import {
 } from '../../../infrastructure/database/database.module';
 import { recipeImages, recipes } from '../../../infrastructure/database/schema';
 import { RecipeImageCleanupQueue } from '../../../infrastructure/jobs/recipe-image-cleanup.queue';
+import { variantObjectKey } from '../../media/file-storage.service';
 import { DeleteRecipeCommand } from './delete-recipe.command';
 
 @Injectable()
@@ -64,7 +65,11 @@ export class DeleteRecipeHandler implements ICommandHandler<
 
       await tx.delete(recipes).where(eq(recipes.id, recipe.id));
 
-      return images.map((image) => image.objectKey);
+      return images.flatMap((image) => [
+        image.objectKey,
+        variantObjectKey(image.objectKey, 'medium'),
+        variantObjectKey(image.objectKey, 'thumbnail'),
+      ]);
     });
 
     await this.cache.delete('recipes');

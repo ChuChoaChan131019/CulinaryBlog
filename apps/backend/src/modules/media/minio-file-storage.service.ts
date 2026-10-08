@@ -1,8 +1,8 @@
-import { CreateBucketCommand, DeleteObjectCommand, HeadBucketCommand, PutBucketPolicyCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { CreateBucketCommand, DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, PutBucketPolicyCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
-import { IFileStorageService, StoredFile, UploadFile, validateUpload } from './file-storage.service';
+import { IFileStorageService, StoredFile, StoredObject, UploadFile, validateUpload } from './file-storage.service';
 
 @Injectable()
 export class MinioFileStorageService implements IFileStorageService, OnModuleInit {
@@ -66,6 +66,31 @@ export class MinioFileStorageService implements IFileStorageService, OnModuleIni
 
   async deleteAsync(key: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+  }
+
+  async readAsync(key: string): Promise<Buffer> {
+    const response = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+    if (!response.Body) throw new Error(`Object ${key} has no body.`);
+    return Buffer.from(await response.Body.transformToByteArray());
+  }
+
+  async putAsync(key: string, object: StoredObject): Promise<StoredFile> {
+    await this.client.send(new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: object.buffer,
+      ContentType: object.contentType,
+      ContentLength: object.buffer.length,
+    }));
+
+    return {
+      url: `${this.publicUrl}/${this.bucket}/${key}`,
+      key,
+      contentType: object.contentType,
+      size: object.buffer.length,
+    };
   }
 
   async isHealthy(): Promise<boolean> {

@@ -53,6 +53,7 @@ import { RecipeIngredientResponseDto } from './dto/recipe.dto';
 import { RecipeImagesService } from '../media/recipe-images.service';
 import { UploadFile, MAX_FILE_SIZE } from '../media/file-storage.service';
 import { FileUploadExceptionInterceptor } from '../media/file-upload-exception.interceptor';
+import { RecipeImageUploadService } from './recipe-image-upload.service';
 import { RecipeStepsService } from './recipe-steps.service';
 import { RecipeDetailsService } from './recipe-details.service';
 import { CreateRecipeStepDto, UpdateRecipeStepDto } from './dto/recipe-step.dto';
@@ -65,6 +66,7 @@ export class RecipesController {
     private readonly queryBus: QueryBus,
     private readonly recipeIngredients: RecipeIngredientsService,
     private readonly recipeImages: RecipeImagesService,
+    private readonly recipeImageUpload: RecipeImageUploadService,
     private readonly recipeSteps: RecipeStepsService,
     private readonly recipeDetails: RecipeDetailsService,
   ) {}
@@ -245,7 +247,7 @@ export class RecipesController {
         detail: 'A file is required.',
       });
     }
-    return this.recipeImages.upload(id, user, file, altText);
+    return this.recipeImageUpload.upload(id, user, file, altText);
   }
 
   @Patch(':id/images/:imageId/primary')

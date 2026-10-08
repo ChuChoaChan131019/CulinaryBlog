@@ -50,6 +50,7 @@ describe('RecipesController update', () => {
       queryBus as never,
       recipeIngredients as never,
       { upload: jest.fn(), setPrimary: jest.fn(), remove: jest.fn() } as never,
+      { upload: jest.fn() } as never,
       { list: jest.fn(), create: jest.fn(), update: jest.fn(), remove: jest.fn() } as never,
       { getBySlug: jest.fn() } as never,
     );
