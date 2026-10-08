@@ -14,6 +14,8 @@ import { UpdateRecipeHandler } from './commands/update-recipe.handler';
 import { RecipesController } from './recipes.controller';
 import { GetRecipesHandler } from './queries/get-recipes.handler';
 import { RecipeIngredientsService } from './recipe-ingredients.service';
+import { RecipeStepsService } from './recipe-steps.service';
+import { RecipeDetailsService } from './recipe-details.service';
 import { MediaModule } from '../media/media.module';
 import { JobsModule } from '../../infrastructure/jobs/jobs.module';
 import { DeleteRecipeHandler } from './commands/delete-recipe.handler';
@@ -47,6 +49,8 @@ import { RecipeImageUploadService } from './recipe-image-upload.service';
     RolesGuard,
     RecipeIngredientsService,
     RecipeImageUploadService,
+    RecipeStepsService,
+    RecipeDetailsService,
   ],
 })
 export class RecipesModule {}

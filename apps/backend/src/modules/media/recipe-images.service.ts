@@ -165,11 +165,13 @@ export class RecipeImagesService {
       return image;
     });
 
+    // DB deletion is already committed. Storage cleanup is best effort so a
+    // transient MinIO failure does not turn a successful DELETE into a 500.
     await Promise.all([
       deleted.objectKey,
       variantObjectKey(deleted.objectKey, 'medium'),
       variantObjectKey(deleted.objectKey, 'thumbnail'),
-    ].map((key) => this.fileStorage.deleteAsync(key)));
+    ].map((key) => this.fileStorage.deleteAsync(key).catch(() => undefined)));
   }
 
   private async getOwnedRecipe(recipeId: string, user: AuthenticatedUser) {

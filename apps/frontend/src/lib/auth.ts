@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from 'react';
 import type { AuthResponseDto, UserProfileDto } from '@culinary/shared';
-import { ApiError, baseUrl, parse } from './api';
+import { ApiError, baseUrl, parse, requestHeaders } from './api';
 
 /**
  * Lớp quản lý phiên đăng nhập phía client.
@@ -171,16 +171,10 @@ export function refresh(): Promise<Session | null> {
  * Dùng cho mọi endpoint cần đăng nhập; endpoint công khai vẫn dùng `apiGet`.
  */
 export async function apiAuthed<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const send = async (token: string | undefined) =>
-    fetch(`${baseUrl}${path}`, {
-      ...init,
-      headers: {
-        Accept: 'application/json',
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...init.headers,
-      },
-    });
+  const send = async (token: string | undefined) => fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: requestHeaders(init, token),
+  });
 
   let res = await send(getSession()?.accessToken);
   if (res.status === 401) {
@@ -189,6 +183,41 @@ export async function apiAuthed<T>(path: string, init: RequestInit = {}): Promis
     res = await send(renewed.accessToken);
   }
   return parse<T>(res);
+}
+
+/** Upload multipart có tiến trình và dùng cùng cơ chế refresh token với apiAuthed. */
+export async function apiUpload<T>(
+  path: string,
+  formData: FormData,
+  onProgress?: (percentage: number) => void,
+): Promise<T> {
+  const send = (token: string | undefined) =>
+    new Promise<Response>((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('POST', `${baseUrl}${path}`);
+      request.setRequestHeader('Accept', 'application/json');
+      if (token) request.setRequestHeader('Authorization', `Bearer ${token}`);
+      request.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          onProgress?.(Math.round((event.loaded / event.total) * 100));
+        }
+      };
+      request.onerror = () => reject(new Error('Không thể kết nối tới máy chủ.'));
+      request.onabort = () => reject(new Error('Tải ảnh đã bị hủy.'));
+      request.onload = () => resolve(new Response(request.responseText, {
+        status: request.status,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+      request.send(formData);
+    });
+
+  let response = await send(getSession()?.accessToken);
+  if (response.status === 401) {
+    const renewed = await refresh();
+    if (!renewed) throw new ApiError(401, null);
+    response = await send(renewed.accessToken);
+  }
+  return parse<T>(response);
 }
 
 export function getProfile(): Promise<UserProfileDto> {

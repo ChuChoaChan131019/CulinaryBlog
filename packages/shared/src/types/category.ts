@@ -21,9 +21,25 @@ export interface CreateCategoryRequest {
   imageUrl?: string;
 }
 
+export interface UpdateCategoryRequest {
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  orderIndex?: number;
+}
+
 export interface CreatedCategoryDto {
   id: string;
   name: string;
   slug: string;
   description: string | null;
+}
+
+export interface UpdatedCategoryDto {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  orderIndex: number;
 }
