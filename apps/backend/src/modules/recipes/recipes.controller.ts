@@ -7,6 +7,7 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -66,10 +67,13 @@ import { RecipeImageUploadService } from './recipe-image-upload.service';
 import { RecipeStepsService } from './recipe-steps.service';
 import { RecipeDetailsService } from './recipe-details.service';
 import { CreateRecipeStepDto, UpdateRecipeStepDto } from './dto/recipe-step.dto';
+import { RecipeImageCleanupQueue } from '../../infrastructure/jobs/recipe-image-cleanup.queue';
 
 @ApiTags('recipes')
 @Controller('recipes')
 export class RecipesController {
+  private readonly logger = new Logger(RecipesController.name);
+
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
@@ -78,6 +82,7 @@ export class RecipesController {
     private readonly recipeImageUpload: RecipeImageUploadService,
     private readonly recipeSteps: RecipeStepsService,
     private readonly recipeDetails: RecipeDetailsService,
+    private readonly imageCleanup: RecipeImageCleanupQueue,
   ) {}
 
   @Get('search')
@@ -312,7 +317,14 @@ export class RecipesController {
     imageId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
-    await this.recipeImages.remove(id, imageId, user);
+    const objectKeys = await this.recipeImages.remove(id, imageId, user);
+
+    // The database mutation is the synchronous source of truth. MinIO cleanup
+    // runs in BullMQ so a storage outage never blocks the 204 response.
+    void this.imageCleanup.enqueue({ recipeId: id, objectKeys }).catch((error: unknown) => {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Không thể enqueue job xóa ảnh ${imageId}: ${detail}`);
+    });
   }
 
   @Post()

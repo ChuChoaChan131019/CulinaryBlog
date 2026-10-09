@@ -126,7 +126,7 @@ export class RecipeImagesService {
     recipeId: string,
     imageId: string,
     user: AuthenticatedUser,
-  ): Promise<void> {
+  ): Promise<string[]> {
     await this.getOwnedRecipe(recipeId, user);
     const deleted = await this.db.transaction(async (tx) => {
       const [image] = await tx
@@ -165,13 +165,11 @@ export class RecipeImagesService {
       return image;
     });
 
-    // DB deletion is already committed. Storage cleanup is best effort so a
-    // transient MinIO failure does not turn a successful DELETE into a 500.
-    await Promise.all([
+    return [
       deleted.objectKey,
       variantObjectKey(deleted.objectKey, 'medium'),
       variantObjectKey(deleted.objectKey, 'thumbnail'),
-    ].map((key) => this.fileStorage.deleteAsync(key).catch(() => undefined)));
+    ];
   }
 
   private async getOwnedRecipe(recipeId: string, user: AuthenticatedUser) {

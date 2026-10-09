@@ -53,6 +53,7 @@ describe('RecipesController update', () => {
       { upload: jest.fn() } as never,
       { list: jest.fn(), create: jest.fn(), update: jest.fn(), remove: jest.fn() } as never,
       { getBySlug: jest.fn() } as never,
+      { enqueue: jest.fn().mockResolvedValue(undefined) } as never,
     );
     const response = { setHeader: jest.fn() };
 
