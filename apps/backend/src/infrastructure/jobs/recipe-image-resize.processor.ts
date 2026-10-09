@@ -1,12 +1,15 @@
-import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job, Worker } from 'bullmq';
 import { and, eq, sql } from 'drizzle-orm';
 import Redis from 'ioredis';
-import {
-  DATABASE_CONNECTION,
-  Database,
-} from '../database/database.module';
+import { DATABASE_CONNECTION, Database } from '../database/database.module';
 import { recipeImages } from '../database/schema';
 import {
   FILE_STORAGE,
@@ -19,9 +22,12 @@ import {
   RECIPE_IMAGE_RESIZE_QUEUE,
 } from './recipe-image-resize.queue';
 import { RecipeImageVariantsService } from './recipe-image-variants.service';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
-export class RecipeImageResizeProcessor implements OnModuleInit, OnModuleDestroy {
+export class RecipeImageResizeProcessor
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(RecipeImageResizeProcessor.name);
   private readonly connection: Redis;
   private worker?: Worker<RecipeImageResizeJob>;
@@ -31,6 +37,7 @@ export class RecipeImageResizeProcessor implements OnModuleInit, OnModuleDestroy
     @Inject(DATABASE_CONNECTION) private readonly db: Database,
     @Inject(FILE_STORAGE) private readonly fileStorage: IFileStorageService,
     private readonly variants: RecipeImageVariantsService,
+    private readonly cache: CacheService,
   ) {
     this.connection = new Redis(config.getOrThrow<string>('REDIS_URL'), {
       maxRetriesPerRequest: null,
@@ -91,13 +98,18 @@ export class RecipeImageResizeProcessor implements OnModuleInit, OnModuleDestroy
       }
     } catch (error) {
       await Promise.all(
-        stored.map((file) => this.fileStorage.deleteAsync(file.key).catch(() => undefined)),
+        stored.map((file) =>
+          this.fileStorage.deleteAsync(file.key).catch(() => undefined),
+        ),
       );
       throw error;
     }
     const medium = stored.find((file) => file.key.endsWith('-medium.webp'));
-    const thumbnail = stored.find((file) => file.key.endsWith('-thumbnail.webp'));
-    if (!medium || !thumbnail) throw new Error('Image variants were not generated.');
+    const thumbnail = stored.find((file) =>
+      file.key.endsWith('-thumbnail.webp'),
+    );
+    if (!medium || !thumbnail)
+      throw new Error('Image variants were not generated.');
 
     let updatedRows: Array<{ id: string }>;
     try {
@@ -119,7 +131,9 @@ export class RecipeImageResizeProcessor implements OnModuleInit, OnModuleDestroy
         .returning({ id: recipeImages.id });
     } catch (error) {
       await Promise.all(
-        stored.map((file) => this.fileStorage.deleteAsync(file.key).catch(() => undefined)),
+        stored.map((file) =>
+          this.fileStorage.deleteAsync(file.key).catch(() => undefined),
+        ),
       );
       throw error;
     }
@@ -128,9 +142,14 @@ export class RecipeImageResizeProcessor implements OnModuleInit, OnModuleDestroy
 
     if (!updated) {
       await Promise.all(
-        stored.map((file) => this.fileStorage.deleteAsync(file.key).catch(() => undefined)),
+        stored.map((file) =>
+          this.fileStorage.deleteAsync(file.key).catch(() => undefined),
+        ),
       );
+      return;
     }
+
+    await this.cache.delete('recipes');
   }
 
   async onModuleDestroy(): Promise<void> {

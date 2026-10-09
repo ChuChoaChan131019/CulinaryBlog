@@ -25,6 +25,7 @@ import { ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   PagedResult,
+  RecipeDetailDto,
   RecipeSearchResultDto,
   RecipeSummaryDto,
 } from '@culinary/shared';
@@ -65,9 +66,12 @@ import { UploadFile, MAX_FILE_SIZE } from '../media/file-storage.service';
 import { FileUploadExceptionInterceptor } from '../media/file-upload-exception.interceptor';
 import { RecipeImageUploadService } from './recipe-image-upload.service';
 import { RecipeStepsService } from './recipe-steps.service';
-import { RecipeDetailsService } from './recipe-details.service';
-import { CreateRecipeStepDto, UpdateRecipeStepDto } from './dto/recipe-step.dto';
+import {
+  CreateRecipeStepDto,
+  UpdateRecipeStepDto,
+} from './dto/recipe-step.dto';
 import { RecipeImageCleanupQueue } from '../../infrastructure/jobs/recipe-image-cleanup.queue';
+import { GetRecipeBySlugQuery } from './queries/get-recipe-by-slug.query';
 
 @ApiTags('recipes')
 @Controller('recipes')
@@ -81,7 +85,6 @@ export class RecipesController {
     private readonly recipeImages: RecipeImagesService,
     private readonly recipeImageUpload: RecipeImageUploadService,
     private readonly recipeSteps: RecipeStepsService,
-    private readonly recipeDetails: RecipeDetailsService,
     private readonly imageCleanup: RecipeImageCleanupQueue,
   ) {}
 
@@ -106,8 +109,8 @@ export class RecipesController {
   getBySlug(
     @Param('slug') slug: string,
     @CurrentUser() user: AuthenticatedUser | undefined,
-  ): Promise<RecipeDto> {
-    return this.recipeDetails.getBySlug(slug, user);
+  ): Promise<RecipeDetailDto> {
+    return this.queryBus.execute(new GetRecipeBySlugQuery(slug, user));
   }
 
   @Get(':id/ingredients')
@@ -189,7 +192,11 @@ export class RecipesController {
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
   listSteps(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.recipeSteps.list(id, user);
@@ -201,7 +208,11 @@ export class RecipesController {
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
   createStep(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
     @Body() dto: CreateRecipeStepDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
@@ -213,8 +224,16 @@ export class RecipesController {
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
   updateStep(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
-    @Param('stepId', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) stepId: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @Param(
+      'stepId',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    stepId: string,
     @Body() dto: UpdateRecipeStepDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
@@ -227,8 +246,16 @@ export class RecipesController {
   @Roles('Author', 'Admin')
   @ApiBearerAuth()
   deleteStep(
-    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
-    @Param('stepId', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST })) stepId: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    id: string,
+    @Param(
+      'stepId',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
+    )
+    stepId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
     return this.recipeSteps.remove(id, stepId, user);
@@ -321,10 +348,14 @@ export class RecipesController {
 
     // The database mutation is the synchronous source of truth. MinIO cleanup
     // runs in BullMQ so a storage outage never blocks the 204 response.
-    void this.imageCleanup.enqueue({ recipeId: id, objectKeys }).catch((error: unknown) => {
-      const detail = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Không thể enqueue job xóa ảnh ${imageId}: ${detail}`);
-    });
+    void this.imageCleanup
+      .enqueue({ recipeId: id, objectKeys })
+      .catch((error: unknown) => {
+        const detail = error instanceof Error ? error.message : String(error);
+        this.logger.error(
+          `Không thể enqueue job xóa ảnh ${imageId}: ${detail}`,
+        );
+      });
   }
 
   @Post()
