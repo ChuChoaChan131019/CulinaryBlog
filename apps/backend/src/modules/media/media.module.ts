@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,6 +28,7 @@ import { RecipeImagesService } from './recipe-images.service';
     RecipeImagesService,
     JwtAuthGuard,
     RolesGuard,
+    ThrottlerGuard,
   ],
   exports: [FileStorageService, FILE_STORAGE, RecipeImagesService],
 })

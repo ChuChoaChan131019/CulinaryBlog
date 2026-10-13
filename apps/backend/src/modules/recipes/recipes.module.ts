@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
@@ -50,6 +51,7 @@ import { RecipeImageUploadService } from './recipe-image-upload.service';
     JwtAuthGuard,
     OptionalJwtAuthGuard,
     RolesGuard,
+    ThrottlerGuard,
     RecipeIngredientsService,
     RecipeImageUploadService,
     RecipeStepsService,

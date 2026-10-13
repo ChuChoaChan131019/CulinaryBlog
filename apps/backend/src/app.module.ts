@@ -2,6 +2,7 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CacheModule } from './infrastructure/cache/cache.module';
@@ -25,6 +26,14 @@ const rootEnvFile = [
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: rootEnvFile }),
+    // ThrottlerModule.forRoot là @Global nên phải khai báo đúng một lần ở đây; import
+    // lần hai ở module con sẽ ghi đè cấu hình của module trước. Giữ một bucket duy
+    // nhất rồi override theo route (@Throttle) — thêm bucket thứ hai sẽ siết luôn cả
+    // các route chỉ override bucket 'default'. NFR: /auth/* 10 request/phút/IP,
+    // upload 5 request/phút/IP (429 kèm header Retry-After).
+    // ponytail: in-memory storage, chỉ đúng khi chạy 1 instance backend; upgrade sang
+    // ThrottlerStorageRedisService nếu scale nhiều instance.
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 10 }]),
     LoggingModule,
     DatabaseModule,
     CacheModule,
