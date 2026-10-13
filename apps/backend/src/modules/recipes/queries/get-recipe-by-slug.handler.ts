@@ -18,6 +18,9 @@ import {
 import { GetRecipeBySlugQuery } from './get-recipe-by-slug.query';
 
 const CACHE_TTL_SECONDS = 60 * 60;
+// Trang sửa công thức gọi GET /recipes/{id}, nên cho phép tra theo id lẫn slug.
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 @QueryHandler(GetRecipeBySlugQuery)
 export class GetRecipeBySlugHandler implements IQueryHandler<
@@ -72,7 +75,14 @@ export class GetRecipeBySlugHandler implements IQueryHandler<
       .from(recipes)
       .innerJoin(categories, eq(recipes.categoryId, categories.id))
       .innerJoin(users, eq(recipes.authorId, users.id))
-      .where(and(eq(recipes.slug, query.slug), eq(recipes.isDeleted, false)))
+      .where(
+        and(
+          UUID_PATTERN.test(query.slug)
+            ? eq(recipes.id, query.slug)
+            : eq(recipes.slug, query.slug),
+          eq(recipes.isDeleted, false),
+        ),
+      )
       .limit(1);
 
     if (!recipe) {

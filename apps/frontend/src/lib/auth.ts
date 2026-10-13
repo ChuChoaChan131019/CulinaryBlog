@@ -1,7 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import type { AuthResponseDto, UserProfileDto } from '@culinary/shared';
+import type { AuthResponseDto, UserProfileDto, UserRole } from '@culinary/shared';
 import { ApiError, baseUrl, parse, requestHeaders } from './api';
 
 /**
@@ -19,6 +19,22 @@ export interface Session {
   user: UserProfileDto;
 }
 
+// The SRS contract exposes roles as an array, while the frontend session uses
+// the single role currently stored for each user. Normalize at the API boundary
+// so role guards do not reject a valid Author session.
+type ProfileResponse = Omit<UserProfileDto, 'role'> & {
+  role?: UserRole;
+  roles?: UserRole[];
+};
+
+function normalizeProfile(profile: ProfileResponse): UserProfileDto {
+  const role = profile.role ?? profile.roles?.[0];
+  if (!role) throw new Error('API không trả về role của người dùng.');
+  const normalized = { ...profile, role };
+  delete normalized.roles;
+  return normalized;
+}
+
 let session: Session | null | undefined;
 const listeners = new Set<() => void>();
 
@@ -26,7 +42,9 @@ function read(): Session | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Session) : null;
+    if (!raw) return null;
+    const stored = JSON.parse(raw) as Session & { user: ProfileResponse };
+    return { ...stored, user: normalizeProfile(stored.user) };
   } catch {
     // localStorage bị chặn (private mode) hoặc dữ liệu hỏng → coi như chưa đăng nhập.
     return null;
@@ -96,7 +114,7 @@ type TokenPair = Pick<AuthResponseDto, 'accessToken' | 'refreshToken' | 'expires
 function fetchProfile(accessToken: string): Promise<UserProfileDto> {
   return fetch(`${baseUrl}/auth/me`, {
     headers: { Accept: 'application/json', Authorization: `Bearer ${accessToken}` },
-  }).then((res) => parse<UserProfileDto>(res));
+  }).then((res) => parse<ProfileResponse>(res)).then(normalizeProfile);
 }
 
 async function establish(tokens: TokenPair): Promise<Session> {
@@ -221,16 +239,16 @@ export async function apiUpload<T>(
 }
 
 export function getProfile(): Promise<UserProfileDto> {
-  return apiAuthed<UserProfileDto>('/auth/me');
+  return apiAuthed<ProfileResponse>('/auth/me').then(normalizeProfile);
 }
 
 export async function updateProfile(
   patch: Partial<Pick<UserProfileDto, 'displayName' | 'avatarUrl' | 'bio'>>,
 ): Promise<UserProfileDto> {
-  const user = await apiAuthed<UserProfileDto>('/auth/me', {
+  const user = await apiAuthed<ProfileResponse>('/auth/me', {
     method: 'PATCH',
     body: JSON.stringify(patch),
-  });
+  }).then(normalizeProfile);
   const current = getSession();
   if (current) setSession({ ...current, user });
   return user;

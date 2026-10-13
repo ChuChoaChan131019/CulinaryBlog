@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { AuthenticatedUser } from '../../common/auth/authenticated-user';
 import { CacheService } from '../../infrastructure/cache/cache.service';
@@ -54,6 +54,11 @@ export class RecipeStepsService {
 
   async update(recipeId: string, stepId: string, dto: UpdateRecipeStepDto, user: AuthenticatedUser): Promise<RecipeStepResponseDto> {
     await this.getOwnedRecipe(recipeId, user);
+
+    if (dto.stepNumber !== undefined) {
+      return this.updateWithOrder(recipeId, stepId, dto);
+    }
+
     const [row] = await this.db.update(recipeSteps).set({
       title: dto.title.trim(),
       description: dto.description.trim(),
@@ -63,6 +68,48 @@ export class RecipeStepsService {
       rowVersion: sql`${recipeSteps.rowVersion} + 1`,
     }).where(and(eq(recipeSteps.id, stepId), eq(recipeSteps.recipeId, recipeId), eq(recipeSteps.isDeleted, false))).returning();
     if (!row) throw this.notFound();
+    await this.cache.delete('recipes');
+    return this.toResponse(row);
+  }
+
+  private async updateWithOrder(recipeId: string, stepId: string, dto: UpdateRecipeStepDto): Promise<RecipeStepResponseDto> {
+    const [row] = await this.db.transaction(async (tx) => {
+      await tx.select({ id: recipes.id }).from(recipes).where(eq(recipes.id, recipeId)).for('update');
+      const rows = await tx.select().from(recipeSteps)
+        .where(and(eq(recipeSteps.recipeId, recipeId), eq(recipeSteps.isDeleted, false)))
+        .orderBy(asc(recipeSteps.stepNumber), asc(recipeSteps.createdAt));
+      const target = rows.find((item) => item.id === stepId);
+      if (!target) throw this.notFound();
+      if (dto.stepNumber! > rows.length) {
+        throw new BadRequestException({ type: 'RECIPE_STEP_ORDER_INVALID', status: 400, detail: 'stepNumber vượt quá số bước hiện có' });
+      }
+
+      const ordered = rows.filter((item) => item.id !== stepId);
+      ordered.splice(dto.stepNumber! - 1, 0, target);
+
+      // Tạm dùng số âm để không đụng unique(recipe_id, step_number) khi đổi chỗ.
+      for (const [index, item] of rows.entries()) {
+        await tx.update(recipeSteps).set({ stepNumber: -(index + 1) }).where(eq(recipeSteps.id, item.id));
+      }
+      for (const [index, item] of ordered.entries()) {
+        const isTarget = item.id === stepId;
+        await tx.update(recipeSteps).set({
+          stepNumber: index + 1,
+          ...(isTarget ? {
+            title: dto.title.trim(),
+            description: dto.description.trim(),
+            timerMinutes: dto.timerMinutes,
+            imageUrl: dto.imageUrl,
+            updatedAt: new Date(),
+            rowVersion: sql`${recipeSteps.rowVersion} + 1`,
+          } : { updatedAt: new Date(), rowVersion: sql`${recipeSteps.rowVersion} + 1` }),
+        }).where(eq(recipeSteps.id, item.id));
+      }
+
+      const [updated] = await tx.select().from(recipeSteps).where(eq(recipeSteps.id, stepId)).limit(1);
+      if (!updated) throw this.notFound();
+      return [updated];
+    });
     await this.cache.delete('recipes');
     return this.toResponse(row);
   }
