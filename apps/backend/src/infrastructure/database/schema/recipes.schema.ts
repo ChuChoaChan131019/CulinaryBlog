@@ -93,9 +93,9 @@ export const recipeIngredients = pgTable('recipe_ingredients', {
   recipeId: uuid('recipe_id')
     .notNull()
     .references(() => recipes.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 200 }).notNull(),
-  quantity: decimal('quantity', { precision: 10, scale: 3 }),
-  unit: varchar('unit', { length: 50 }),
+  name: varchar('name', { length: 100 }).notNull(),
+  quantity: decimal('quantity', { precision: 10, scale: 3 }).notNull(),
+  unit: varchar('unit', { length: 50 }).notNull(),
   notes: varchar('notes', { length: 500 }),
   orderIndex: integer('order_index').notNull().default(0),
 });

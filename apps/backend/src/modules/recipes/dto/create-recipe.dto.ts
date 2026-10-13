@@ -1,9 +1,10 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -11,6 +12,7 @@ import {
   IsUUID,
   Max,
   MaxLength,
+  Matches,
   Min,
   MinLength,
   ValidateNested,
@@ -87,19 +89,22 @@ export class CreateRecipeStepDto {
 
 export class CreateRecipeIngredientDto {
   @IsString()
-  @MinLength(1)
-  @MaxLength(200)
+  @IsNotEmpty()
+  @Matches(/\S/)
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MaxLength(100)
   name!: string;
 
-  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 3 })
-  @Min(0)
-  quantity?: number;
+  @Min(0.001)
+  quantity!: number;
 
-  @IsOptional()
   @IsString()
+  @IsNotEmpty()
+  @Matches(/\S/)
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @MaxLength(50)
-  unit?: string;
+  unit!: string;
 
   @IsOptional()
   @IsString()

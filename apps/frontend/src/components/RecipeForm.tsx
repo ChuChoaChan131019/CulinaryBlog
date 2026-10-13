@@ -160,7 +160,7 @@ function asRecipeValues(recipe: RecipeEditorDto): RecipeFormValues {
   };
 }
 
-function validate(values: RecipeFormValues, ingredients: IngredientFieldValue[], steps: StepFieldValue[], mode: RecipeFormMode): FieldErrors {
+function validate(values: RecipeFormValues, ingredients: IngredientFieldValue[], steps: StepFieldValue[]): FieldErrors {
   const errors: FieldErrors = {};
   const add = (key: string, message: string) => { errors[key] = [...(errors[key] ?? []), message]; };
   if (values.title.trim().length < 5 || values.title.trim().length > 200) add('title', 'Tên công thức phải dài từ 5 đến 200 ký tự.');
@@ -180,8 +180,8 @@ function validate(values: RecipeFormValues, ingredients: IngredientFieldValue[],
     const hasContent = item.name.trim() || item.notes.trim() || item.quantity !== undefined;
     if (!hasContent) return;
     if (!item.name.trim()) add(`ingredients.${index}.name`, 'Tên nguyên liệu là bắt buộc.');
-    if (mode === 'edit' && (item.quantity === undefined || item.quantity <= 0)) add(`ingredients.${index}.quantity`, 'Số lượng phải lớn hơn 0.');
-    if (mode === 'edit' && !item.unit.trim()) add(`ingredients.${index}.unit`, 'Đơn vị là bắt buộc.');
+    if (item.quantity === undefined || item.quantity <= 0) add(`ingredients.${index}.quantity`, 'Số lượng phải lớn hơn 0.');
+    if (!item.unit.trim()) add(`ingredients.${index}.unit`, 'Đơn vị là bắt buộc.');
     if (item.quantity !== undefined && (!Number.isFinite(item.quantity) || item.quantity < 0)) add(`ingredients.${index}.quantity`, 'Số lượng không hợp lệ.');
   });
   steps.forEach((item, index) => {
@@ -346,7 +346,7 @@ export default function RecipeForm({ mode, recipeId: initialRecipeId }: RecipeFo
     setError(null);
     setNotice(null);
     const effectiveMode: RecipeFormMode = mode === 'edit' || Boolean(recipeId) ? 'edit' : 'create';
-    const errors = validate(values, ingredients, steps, effectiveMode);
+    const errors = validate(values, ingredients, steps);
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
       setError('Vui lòng kiểm tra lại các trường được đánh dấu.');

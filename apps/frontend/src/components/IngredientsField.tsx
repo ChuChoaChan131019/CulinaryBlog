@@ -73,7 +73,7 @@ export default function IngredientsField({ value, onChange, disabled = false }: 
             <label className="sr-only" htmlFor={`${row.key}-name`}>Ingredient name</label>
             <input id={`${row.key}-name`} className="field min-w-0" placeholder="Ingredient name" value={row.name} onChange={(event) => updateRow(row.key, { name: event.target.value })} disabled={disabled} />
             <label className="sr-only" htmlFor={`${row.key}-quantity`}>Quantity</label>
-            <input id={`${row.key}-quantity`} className="field" type="number" min="0" step="0.001" placeholder="Qty" value={row.quantity ?? ''} onChange={(event) => updateRow(row.key, { quantity: event.target.value === '' ? undefined : Number(event.target.value) })} disabled={disabled} />
+            <input id={`${row.key}-quantity`} className="field" type="number" min="0.001" step="0.001" placeholder="Qty" value={row.quantity ?? ''} onChange={(event) => updateRow(row.key, { quantity: event.target.value === '' ? undefined : Number(event.target.value) })} disabled={disabled} />
             <label className="sr-only" htmlFor={`${row.key}-unit`}>Unit</label>
             <select id={`${row.key}-unit`} className="field" value={row.unit} onChange={(event) => updateRow(row.key, { unit: event.target.value })} disabled={disabled}>
               {units.map((unit) => <option key={unit}>{unit}</option>)}

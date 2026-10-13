@@ -4,6 +4,36 @@ import type { CategoryDto } from "./category";
 export type RecipeStatus = "Draft" | "Published" | "Archived";
 export type DifficultyLevel = "Easy" | "Medium" | "Hard";
 
+/** Payload tạo recipe, dùng chung giữa form App Router và REST API. */
+export interface CreateRecipeRequest {
+  title: string;
+  description: string;
+  categoryId: string;
+  prepTime: number;
+  cookTime: number;
+  servings: number;
+  difficulty: DifficultyLevel;
+  instructions: string;
+  ingredients: CreateRecipeIngredientRequest[];
+  steps: CreateRecipeStepRequest[];
+}
+
+export interface CreateRecipeIngredientRequest {
+  name: string;
+  quantity: number;
+  unit: string;
+  notes?: string;
+  orderIndex: number;
+}
+
+export interface CreateRecipeStepRequest {
+  stepNumber: number;
+  title: string;
+  description: string;
+  timerMinutes?: number;
+  imageUrl?: string;
+}
+
 export interface RecipeIngredientDto {
   id: string;
   name: string;

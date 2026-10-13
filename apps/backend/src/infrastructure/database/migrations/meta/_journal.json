@@ -43,6 +43,13 @@
       "when": 1791433886210,
       "tag": "0005_graceful_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791532800000,
+      "tag": "0006_recipe_ingredient_constraints",
+      "breakpoints": true
     }
   ]
 }

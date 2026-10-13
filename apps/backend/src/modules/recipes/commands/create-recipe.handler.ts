@@ -107,7 +107,7 @@ export class CreateRecipeHandler implements ICommandHandler<
                 command.ingredients.map((ingredient, index) => ({
                   ...ingredient,
                   recipeId: created.id,
-                  quantity: this.toDecimal(ingredient.quantity),
+                  quantity: ingredient.quantity.toString(),
                   orderIndex: ingredient.orderIndex ?? index,
                 })),
               )
