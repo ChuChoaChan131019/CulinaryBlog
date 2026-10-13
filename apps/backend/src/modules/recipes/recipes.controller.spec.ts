@@ -51,14 +51,34 @@ describe('RecipesController update', () => {
       recipeIngredients as never,
       { upload: jest.fn(), setPrimary: jest.fn(), remove: jest.fn() } as never,
       { upload: jest.fn() } as never,
-      { list: jest.fn(), create: jest.fn(), update: jest.fn(), remove: jest.fn() } as never,
-      { getBySlug: jest.fn() } as never,
+      {
+        list: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        remove: jest.fn(),
+      } as never,
       { enqueue: jest.fn().mockResolvedValue(undefined) } as never,
     );
     const response = { setHeader: jest.fn() };
 
-    return { controller, commandBus, response, recipeIngredients };
+    return { controller, commandBus, queryBus, response, recipeIngredients };
   }
+
+  it('gửi GetRecipeBySlugQuery qua QueryBus kèm slug và user tùy chọn', async () => {
+    const { controller, queryBus } = buildController();
+    const detail = { id: recipeId };
+    queryBus.execute.mockResolvedValue(detail);
+
+    await expect(
+      controller.getBySlug('banh-mi-thit-nuong', user),
+    ).resolves.toEqual(detail);
+    expect(queryBus.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ slug: 'banh-mi-thit-nuong', user }),
+    );
+    expect(queryBus.execute.mock.calls[0][0].constructor.name).toBe(
+      'GetRecipeBySlugQuery',
+    );
+  });
 
   it('liệt kê nguyên liệu qua service theo recipe và user hiện tại', async () => {
     const { controller, recipeIngredients } = buildController();
@@ -75,9 +95,9 @@ describe('RecipesController update', () => {
     const ingredient = { id: 'ingredient-id', ...dto };
     recipeIngredients.create.mockResolvedValue(ingredient);
 
-    await expect(controller.createIngredient(recipeId, dto, user)).resolves.toEqual(
-      ingredient,
-    );
+    await expect(
+      controller.createIngredient(recipeId, dto, user),
+    ).resolves.toEqual(ingredient);
     expect(recipeIngredients.create).toHaveBeenCalledWith(recipeId, dto, user);
   });
 
@@ -176,7 +196,9 @@ describe('RecipesController update', () => {
   it('gửi DeleteRecipeCommand và trả thành công cho owner', async () => {
     const { controller, commandBus } = buildController();
 
-    await expect(controller.deleteRecipe(recipeId, user)).resolves.toBeUndefined();
+    await expect(
+      controller.deleteRecipe(recipeId, user),
+    ).resolves.toBeUndefined();
     expect(commandBus.execute).toHaveBeenCalledWith(
       expect.objectContaining({ recipeId, user }),
     );
