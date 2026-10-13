@@ -16,7 +16,7 @@ const localStorageStub = {
 vi.stubGlobal('window', { localStorage: localStorageStub, addEventListener() {}, removeEventListener() {} });
 vi.stubGlobal('localStorage', localStorageStub);
 
-const { apiAuthed, getSession, logout, refresh, setSession } = await import('./auth');
+const { apiAuthed, getSession, login, logout, refresh, setSession } = await import('./auth');
 
 const user = { id: 'u1', email: 'a@b.c', displayName: 'A', avatarUrl: null, bio: null, role: 'Author' as const, createdAt: '' };
 
@@ -78,6 +78,32 @@ describe('refresh', () => {
 
     await expect(refresh()).resolves.toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('login', () => {
+  it('chuẩn hóa roles từ API thành role cho session frontend', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        json({ data: { accessToken: 'access', refreshToken: 'refresh', expiresIn: 900 } }),
+      )
+      .mockResolvedValueOnce(
+        json({
+          data: {
+            id: 'u1',
+            email: 'a@b.c',
+            displayName: 'A',
+            avatarUrl: null,
+            bio: null,
+            roles: ['Author'],
+            createdAt: '',
+          },
+        }),
+      );
+
+    await login('a@b.c', 'Password1!');
+
+    expect(getSession()?.user.role).toBe('Author');
   });
 });
 

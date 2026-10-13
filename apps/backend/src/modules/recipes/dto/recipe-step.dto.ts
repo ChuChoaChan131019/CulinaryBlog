@@ -23,6 +23,11 @@ export class CreateRecipeStepDto {
 }
 
 export class UpdateRecipeStepDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  stepNumber?: number;
+
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)

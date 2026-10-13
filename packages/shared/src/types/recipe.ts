@@ -54,3 +54,60 @@ export interface RecipeDetailDto extends RecipeSummaryDto {
   images: RecipeImageDto[];
   updatedAt: string;
 }
+
+/** Shape dùng cho form tạo/sửa recipe, khớp RecipeDto của backend. */
+export interface RecipeEditorNutritionDto {
+  calories: string | null;
+  protein: string | null;
+  carbohydrates: string | null;
+  fat: string | null;
+  fiber: string | null;
+  sodium: string | null;
+}
+
+export interface RecipeEditorIngredientDto {
+  id: string;
+  name: string;
+  quantity: string | null;
+  unit: string | null;
+  notes: string | null;
+  orderIndex: number;
+}
+
+export interface RecipeEditorStepDto {
+  id: string;
+  stepNumber: number;
+  title: string;
+  description: string;
+  timerMinutes: number | null;
+  imageUrl: string | null;
+}
+
+export interface RecipeEditorImageDto {
+  imageId: string;
+  originalUrl: string;
+  altText: string | null;
+  isPrimary: boolean;
+}
+
+export interface RecipeEditorDto {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  instructions: string;
+  prepTime: number;
+  cookTime: number;
+  servings: number;
+  difficulty: DifficultyLevel;
+  status: RecipeStatus;
+  categoryId: string;
+  authorId: string;
+  nutrition: RecipeEditorNutritionDto;
+  steps: RecipeEditorStepDto[];
+  ingredients: RecipeEditorIngredientDto[];
+  images: RecipeEditorImageDto[];
+  rowVersion: number;
+  createdAt: string;
+  updatedAt: string | null;
+}

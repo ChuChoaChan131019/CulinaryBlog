@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { RequireRole } from '@/components/RequireRole';
-import { NewRecipeForm } from './NewRecipeForm';
+import RecipeForm from '@/components/RecipeForm';
 
 export const metadata: Metadata = {
   title: 'Tạo công thức mới',
@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function NewRecipePage() {
-  return <RequireRole allow={['Author', 'Admin']}><NewRecipeForm /></RequireRole>;
+  return <RequireRole allow={['Author', 'Admin']}><RecipeForm mode="create" /></RequireRole>;
 }

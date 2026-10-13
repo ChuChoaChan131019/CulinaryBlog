@@ -9,10 +9,13 @@ import { RecipeDto } from './dto/recipe.dto';
 export class RecipeDetailsService {
   constructor(@Inject(DATABASE_CONNECTION) private readonly db: Database) {}
 
-  async getBySlug(slug: string, user?: AuthenticatedUser): Promise<RecipeDto> {
+  async getBySlug(slugOrId: string, user?: AuthenticatedUser): Promise<RecipeDto> {
+    const identifier = this.isUuid(slugOrId)
+      ? eq(recipes.id, slugOrId)
+      : eq(recipes.slug, slugOrId);
     const [recipe] = await this.db.select({ recipe: recipes, categoryName: categories.name, categorySlug: categories.slug, authorDisplayName: users.displayName, authorAvatarUrl: users.avatarUrl })
       .from(recipes).innerJoin(categories, eq(recipes.categoryId, categories.id)).innerJoin(users, eq(recipes.authorId, users.id))
-      .where(and(eq(recipes.slug, slug), eq(recipes.isDeleted, false))).limit(1);
+      .where(and(identifier, eq(recipes.isDeleted, false))).limit(1);
     if (!recipe) throw new NotFoundException({ type: 'RECIPE_NOT_FOUND', status: 404 });
     const visible = recipe.recipe.status === 'Published' || user?.role === 'Admin' || user?.id === recipe.recipe.authorId;
     if (!visible) throw new ForbiddenException({ type: 'RECIPE_FORBIDDEN', status: 403 });
@@ -35,5 +38,9 @@ export class RecipeDetailsService {
       category: { name: recipe.categoryName, slug: recipe.categorySlug },
       author: { displayName: recipe.authorDisplayName, avatarUrl: recipe.authorAvatarUrl },
     } as RecipeDto;
+  }
+
+  private isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   }
 }
