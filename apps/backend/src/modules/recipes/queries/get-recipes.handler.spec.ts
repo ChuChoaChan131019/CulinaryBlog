@@ -1,13 +1,18 @@
 import 'reflect-metadata';
+import { UnauthorizedException } from '@nestjs/common';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { CacheService } from '../../../infrastructure/cache/cache.service';
-import { RecipeListDifficulty } from '../dto/get-recipes-query.dto';
+import {
+  RecipeListDifficulty,
+  RecipeListStatus,
+} from '../dto/get-recipes-query.dto';
 import { GetRecipesHandler } from './get-recipes.handler';
 import { GetRecipesQuery } from './get-recipes.query';
 
 describe('GetRecipesHandler', () => {
   const createdAt = new Date('2026-09-18T08:00:00.000Z');
   const publishedAt = new Date('2026-09-19T08:00:00.000Z');
+  const updatedAt = new Date('2026-09-20T08:00:00.000Z');
   const row = {
     id: '38cd0ac5-58f8-4b9f-9161-c311958c4eed',
     title: 'Bánh mì thịt nướng',
@@ -27,6 +32,7 @@ describe('GetRecipesHandler', () => {
     categorySlug: 'mon-viet',
     publishedAt,
     createdAt,
+    updatedAt,
   };
 
   const params = {
@@ -38,7 +44,7 @@ describe('GetRecipesHandler', () => {
     sort: '-cookTime' as const,
   };
 
-  function buildDb(totalCount = 13, rows = [row]) {
+  function buildDb(totalCount = 13, rows: unknown[] = [row]) {
     const countWhere = jest.fn().mockResolvedValue([{ totalCount }]);
     const countFrom = jest.fn().mockReturnValue({ where: countWhere });
 
@@ -88,7 +94,7 @@ describe('GetRecipesHandler', () => {
       ),
     ).resolves.toEqual(cached);
     expect(cache.get).toHaveBeenCalledWith(
-      `recipes:list:Author:${row.authorId}:2:12:${row.categoryId}:Medium:30:-:-cookTime`,
+      `recipes:list:Author:${row.authorId}:2:12:all:-:${row.categoryId}:Medium:30:-:-cookTime`,
       900,
     );
     expect(db.select).not.toHaveBeenCalled();
@@ -120,6 +126,7 @@ describe('GetRecipesHandler', () => {
           },
           publishedAt: publishedAt.toISOString(),
           createdAt: createdAt.toISOString(),
+          updatedAt: updatedAt.toISOString(),
         }),
       ],
       totalCount: 13,
@@ -130,7 +137,7 @@ describe('GetRecipesHandler', () => {
       hasPreviousPage: true,
     });
     expect(cache.set).toHaveBeenCalledWith(
-      `recipes:list:Guest:2:12:${row.categoryId}:Medium:30:-:-cookTime`,
+      `recipes:list:Guest:2:12:all:-:${row.categoryId}:Medium:30:-:-cookTime`,
       result,
       900,
     );
@@ -228,8 +235,97 @@ describe('GetRecipesHandler', () => {
       row.categoryId,
     ]);
     expect(cache.set).toHaveBeenCalledWith(
-      `recipes:list:Author:${row.authorId}:Draft:1:12:${row.categoryId}:-:-:-:-createdAt`,
+      `recipes:list:Author:${row.authorId}:Draft:1:12:all:-:${row.categoryId}:-:-:-:-createdAt`,
       expect.any(Object),
+      900,
+    );
+  });
+
+  it('mine=true giới hạn theo user và lọc status trước khi phân trang', async () => {
+    const db = buildDb(1, [{ ...row, status: 'Draft' }]);
+    const cache = buildCache();
+    const handler = new GetRecipesHandler(db as never, cache);
+    const user = {
+      id: row.authorId,
+      email: 'trang@example.com',
+      role: 'Author' as const,
+    };
+
+    const result = await handler.execute(
+      new GetRecipesQuery(
+        {
+          page: 1,
+          pageSize: 12,
+          mine: true,
+          status: RecipeListStatus.Draft,
+          sort: '-createdAt',
+        },
+        user,
+      ),
+    );
+
+    const condition = db.countWhere.mock.calls[0][0];
+    expect(new PgDialect().sqlToQuery(condition).params).toEqual([
+      false,
+      row.authorId,
+      'Draft',
+    ]);
+    expect(result.items[0]).toMatchObject({
+      id: row.id,
+      status: 'Draft',
+      updatedAt: updatedAt.toISOString(),
+    });
+    expect(cache.set).toHaveBeenCalledWith(
+      `recipes:list:Mine:${row.authorId}:1:12:mine:Draft:-:-:-:-:-createdAt`,
+      result,
+      900,
+    );
+  });
+
+  it('yêu cầu đăng nhập cho mine=true trước khi đọc cache hoặc database', async () => {
+    const db = buildDb();
+    const cache = buildCache();
+    const handler = new GetRecipesHandler(db as never, cache);
+
+    await expect(
+      handler.execute(
+        new GetRecipesQuery({
+          page: 1,
+          pageSize: 12,
+          mine: true,
+          sort: '-createdAt',
+        }),
+      ),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(cache.get).not.toHaveBeenCalled();
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
+  it('tách cache mine=true giữa các Admin khác nhau', async () => {
+    const adminA = { id: 'admin-a', email: 'a@example.com', role: 'Admin' as const };
+    const adminB = { id: 'admin-b', email: 'b@example.com', role: 'Admin' as const };
+    const cacheA = buildCache();
+    const cacheB = buildCache();
+
+    await new GetRecipesHandler(buildDb(0, []) as never, cacheA).execute(
+      new GetRecipesQuery(
+        { page: 1, pageSize: 12, mine: true, sort: '-createdAt' },
+        adminA,
+      ),
+    );
+    await new GetRecipesHandler(buildDb(0, []) as never, cacheB).execute(
+      new GetRecipesQuery(
+        { page: 1, pageSize: 12, mine: true, sort: '-createdAt' },
+        adminB,
+      ),
+    );
+
+    expect(cacheA.get).toHaveBeenCalledWith(
+      'recipes:list:Mine:admin-a:1:12:mine:-:-:-:-:-:-createdAt',
+      900,
+    );
+    expect(cacheB.get).toHaveBeenCalledWith(
+      'recipes:list:Mine:admin-b:1:12:mine:-:-:-:-:-:-createdAt',
       900,
     );
   });

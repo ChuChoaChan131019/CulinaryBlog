@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsIn,
   IsInt,
@@ -13,6 +14,12 @@ export enum RecipeListDifficulty {
   Easy = 'Easy',
   Medium = 'Medium',
   Hard = 'Hard',
+}
+
+export enum RecipeListStatus {
+  Draft = 'Draft',
+  Published = 'Published',
+  Archived = 'Archived',
 }
 
 export const RECIPE_SORT_VALUES = [
@@ -37,6 +44,20 @@ export class GetRecipesQueryDto {
   @Min(1)
   @Max(50)
   pageSize = 12;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
+  mine?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  @IsEnum(RecipeListStatus)
+  status?: RecipeListStatus;
 
   @IsOptional()
   @Transform(({ value }) => (value === '' ? undefined : value))
@@ -72,6 +93,8 @@ export class GetRecipesQueryDto {
 export interface GetRecipesQueryParams {
   page: number;
   pageSize: number;
+  mine?: boolean;
+  status?: RecipeListStatus;
   categoryId?: string;
   difficulty?: RecipeListDifficulty;
   maxCookTime?: number;

@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import { CacheService } from '../../../infrastructure/cache/cache.service';
 import { GetRecipeBySlugHandler } from './get-recipe-by-slug.handler';
 import { GetRecipeBySlugQuery } from './get-recipe-by-slug.query';
@@ -59,15 +60,16 @@ describe('GetRecipeBySlugHandler', () => {
         })
       | null = recipe,
   ) {
+    const rootWhere = jest.fn().mockReturnValue({
+      limit: jest.fn().mockResolvedValue(root ? [root] : []),
+    });
     const select = jest
       .fn()
       .mockReturnValueOnce({
         from: jest.fn().mockReturnValue({
           innerJoin: jest.fn().mockReturnValue({
             innerJoin: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue(root ? [root] : []),
-              }),
+              where: rootWhere,
             }),
           }),
         }),
@@ -109,7 +111,7 @@ describe('GetRecipeBySlugHandler', () => {
           },
         ]),
       );
-    return { select };
+    return { select, rootWhere };
   }
 
   it('trả cache 60 phút nhưng vẫn kiểm tra quyền với recipe Draft', async () => {
@@ -183,6 +185,26 @@ describe('GetRecipeBySlugHandler', () => {
         }),
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('đọc công thức theo ID để form sửa nạp đúng bản nháp của owner', async () => {
+    const draft = { ...recipe, status: 'Draft' as const };
+    const owner = {
+      id: authorId,
+      email: 'trang@example.com',
+      role: 'Author' as const,
+    };
+    const db = buildDb(draft);
+    const handler = new GetRecipeBySlugHandler(db as never, buildCache());
+
+    await expect(
+      handler.execute(new GetRecipeBySlugQuery(recipe.id, owner)),
+    ).resolves.toMatchObject({ id: recipe.id, status: 'Draft' });
+
+    const compiledWhere = new PgDialect().sqlToQuery(
+      db.rootWhere.mock.calls[0][0],
+    );
+    expect(compiledWhere.params).toEqual([recipe.id, false]);
   });
 
   it('trả 404 và không cache khi không có recipe phù hợp', async () => {

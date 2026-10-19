@@ -3,10 +3,11 @@ import type {
   PagedResponse,
   RecipeSearchResultDto,
 } from "@culinary/shared";
-import { ChevronLeft, ChevronRight, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RecipeCard } from "@/components/RecipeCard";
+import { Pagination } from "@/components/Pagination";
 import { apiGet, apiGetPaged } from "@/lib/api";
 import {
   buildSearchHref,
@@ -321,71 +322,12 @@ function SearchResults({
           <RecipeCard key={recipe.id} recipe={recipe} />
         ))}
       </div>
-      <SearchPagination query={query} meta={result.meta} />
+      <Pagination
+        meta={result.meta}
+        hrefForPage={(page) => buildSearchHref(query, page)}
+        label="Phân trang tìm kiếm"
+      />
     </>
-  );
-}
-
-function SearchPagination({
-  query,
-  meta,
-}: {
-  query: SearchPageQuery;
-  meta: PagedResponse<RecipeSearchResultDto>["meta"];
-}) {
-  if (meta.totalPages <= 1) return null;
-
-  const pageCount = Math.min(meta.totalPages, 7);
-  const firstPage = Math.min(
-    Math.max(meta.page - 3, 1),
-    Math.max(meta.totalPages - pageCount + 1, 1),
-  );
-  const pages = Array.from({ length: pageCount }, (_, index) => firstPage + index);
-  return (
-    <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Phân trang tìm kiếm">
-      {meta.hasPreviousPage ? (
-        <Link
-          href={buildSearchHref(query, meta.page - 1)}
-          className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card"
-          aria-label="Trang trước"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Link>
-      ) : (
-        <span className="grid h-10 w-10 place-items-center rounded-full border border-border opacity-40" aria-hidden>
-          <ChevronLeft className="h-4 w-4" />
-        </span>
-      )}
-
-      {pages.map((page) => (
-        <Link
-          key={page}
-          href={buildSearchHref(query, page)}
-          aria-current={page === meta.page ? "page" : undefined}
-          className={`grid h-10 min-w-10 place-items-center rounded-full px-3 text-sm font-semibold ${
-            page === meta.page
-              ? "bg-primary text-primary-foreground"
-              : "border border-border bg-card text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {page}
-        </Link>
-      ))}
-
-      {meta.hasNextPage ? (
-        <Link
-          href={buildSearchHref(query, meta.page + 1)}
-          className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card"
-          aria-label="Trang sau"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Link>
-      ) : (
-        <span className="grid h-10 w-10 place-items-center rounded-full border border-border opacity-40" aria-hidden>
-          <ChevronRight className="h-4 w-4" />
-        </span>
-      )}
-    </nav>
   );
 }
 
