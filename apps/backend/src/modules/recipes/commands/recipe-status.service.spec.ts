@@ -127,6 +127,7 @@ describe('RecipeStatusService', () => {
       }),
     );
     expect(cache.delete).toHaveBeenCalledWith('recipes');
+    expect(cache.delete).toHaveBeenCalledWith('categories:all');
   });
 
   it('từ chối publish khi chưa có step', async () => {
@@ -157,7 +158,7 @@ describe('RecipeStatusService', () => {
       updatedAt: new Date(),
       rowVersion: 2,
     };
-    const { service, updateSet } = setup(
+    const { service, updateSet, cache } = setup(
       [[existing], steps, ingredients],
       updated,
     );
@@ -170,6 +171,7 @@ describe('RecipeStatusService', () => {
       expect.objectContaining({ status: 'Draft' }),
     );
     expect(updateSet.mock.calls[0][0]).not.toHaveProperty('publishedAt');
+    expect(cache.delete).toHaveBeenCalledWith('categories:all');
   });
 
   it('publish lại giữ nguyên ngày xuất bản đầu tiên', async () => {
@@ -226,6 +228,11 @@ describe('RecipeStatusService', () => {
       );
       expect(updateSet.mock.calls[0][0]).not.toHaveProperty('publishedAt');
       expect(cache.delete).toHaveBeenCalledWith('recipes');
+      if (status === 'Published') {
+        expect(cache.delete).toHaveBeenCalledWith('categories:all');
+      } else {
+        expect(cache.delete).not.toHaveBeenCalledWith('categories:all');
+      }
     },
   );
 

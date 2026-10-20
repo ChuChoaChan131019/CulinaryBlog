@@ -43,11 +43,14 @@ export class UpdateRecipeHandler implements ICommandHandler<
       });
     }
 
+    let categoryCountChanged = false;
     const result = await this.db.transaction(async (tx) => {
       const [existing] = await tx
         .select({
           id: recipes.id,
           authorId: recipes.authorId,
+          status: recipes.status,
+          categoryId: recipes.categoryId,
         })
         .from(recipes)
         .where(
@@ -148,6 +151,10 @@ export class UpdateRecipeHandler implements ICommandHandler<
         });
       }
 
+      categoryCountChanged =
+        existing.status === 'Published' &&
+        existing.categoryId !== updated.categoryId;
+
       const [steps, ingredients] = await Promise.all([
         tx
           .select({
@@ -215,6 +222,9 @@ export class UpdateRecipeHandler implements ICommandHandler<
     });
 
     await this.cache.delete('recipes');
+    if (categoryCountChanged) {
+      await this.cache.delete('categories:all');
+    }
     return result;
   }
 

@@ -32,9 +32,14 @@ export class DeleteRecipeHandler implements ICommandHandler<
   ) {}
 
   async execute(command: DeleteRecipeCommand): Promise<void> {
+    let publishedDeleted = false;
     const objectKeys = await this.db.transaction(async (tx) => {
       const [recipe] = await tx
-        .select({ id: recipes.id, authorId: recipes.authorId })
+        .select({
+          id: recipes.id,
+          authorId: recipes.authorId,
+          status: recipes.status,
+        })
         .from(recipes)
         .where(
           and(eq(recipes.id, command.recipeId), eq(recipes.isDeleted, false)),
@@ -64,6 +69,7 @@ export class DeleteRecipeHandler implements ICommandHandler<
         .where(eq(recipeImages.recipeId, recipe.id));
 
       await tx.delete(recipes).where(eq(recipes.id, recipe.id));
+      publishedDeleted = recipe.status === 'Published';
 
       return images.flatMap((image) => [
         image.objectKey,
@@ -73,6 +79,9 @@ export class DeleteRecipeHandler implements ICommandHandler<
     });
 
     await this.cache.delete('recipes');
+    if (publishedDeleted) {
+      await this.cache.delete('categories:all');
+    }
 
     // DB deletion is the synchronous source of truth; MinIO cleanup is queued
     // after commit so object-storage latency never blocks the 204 response.

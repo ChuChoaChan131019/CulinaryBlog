@@ -83,6 +83,7 @@ export class RecipeStatusService {
 
       let recipe = existing;
       let changed = false;
+      let categoryCountChanged = false;
 
       if (existing.status !== targetStatus) {
         if (targetStatus === 'Published') {
@@ -147,6 +148,9 @@ export class RecipeStatusService {
         } else {
           recipe = updated;
           changed = true;
+          categoryCountChanged =
+            (existing.status === 'Published') !==
+            (targetStatus === 'Published');
         }
       }
 
@@ -189,6 +193,7 @@ export class RecipeStatusService {
 
       return {
         changed,
+        categoryCountChanged,
         recipe: {
           id: recipe.id,
           title: recipe.title,
@@ -221,6 +226,9 @@ export class RecipeStatusService {
 
     if (result.changed) {
       await this.cache.delete('recipes');
+      if (result.categoryCountChanged) {
+        await this.cache.delete('categories:all');
+      }
       if (targetStatus === 'Published') recipePublishedCounter.add(1);
     }
     return result.recipe;

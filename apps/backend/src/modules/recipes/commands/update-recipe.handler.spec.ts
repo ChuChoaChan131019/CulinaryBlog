@@ -16,6 +16,7 @@ describe('UpdateRecipeHandler', () => {
   const recipeId = '38cd0ac5-58f8-4b9f-9161-c311958c4eed';
   const ownerId = 'b5766939-6e3d-41cb-b652-84a185d9207f';
   const updatedAt = new Date('2026-09-23T10:00:00.000Z');
+  const nextCategoryId = 'a4d0d123-d2e1-4c6d-90a6-6c8b090d7f4a';
   const updatedRecipe = {
     id: recipeId,
     title: 'Bánh mì thịt nướng mới',
@@ -67,14 +68,28 @@ describe('UpdateRecipeHandler', () => {
   }
 
   function buildDb(options?: {
-    existing?: { id: string; authorId: string } | null;
+    existing?: {
+      id: string;
+      authorId: string;
+      status: 'Draft' | 'Published' | 'Archived';
+      categoryId: string;
+    } | null;
     category?: { id: string } | null;
     includeCategoryLookup?: boolean;
-    updated?: typeof updatedRecipe | null;
+    updated?:
+      | (Omit<typeof updatedRecipe, 'status'> & {
+          status: 'Draft' | 'Published' | 'Archived';
+        })
+      | null;
   }) {
     const existing =
       options?.existing === undefined
-        ? { id: recipeId, authorId: ownerId }
+        ? {
+            id: recipeId,
+            authorId: ownerId,
+            status: 'Draft' as const,
+            categoryId: updatedRecipe.categoryId,
+          }
         : options.existing;
     const selectResults: unknown[][] = [existing ? [existing] : []];
     if (options?.includeCategoryLookup) {
@@ -169,8 +184,67 @@ describe('UpdateRecipeHandler', () => {
       );
       expect(compiledWhere.params).toEqual([recipeId, false, 3]);
       expect(cache.delete).toHaveBeenCalledWith('recipes');
+      expect(cache.delete).not.toHaveBeenCalledWith('categories:all');
     },
   );
+
+  it('xóa cache danh mục sau khi chuyển công thức Published sang danh mục khác', async () => {
+    const { db } = buildDb({
+      existing: {
+        id: recipeId,
+        authorId: ownerId,
+        status: 'Published',
+        categoryId: updatedRecipe.categoryId,
+      },
+      category: { id: nextCategoryId },
+      includeCategoryLookup: true,
+      updated: {
+        ...updatedRecipe,
+        status: 'Published',
+        categoryId: nextCategoryId,
+      },
+    });
+    const cache = buildCache();
+    const handler = new UpdateRecipeHandler(db as never, cache);
+
+    await handler.execute(command({ categoryId: nextCategoryId }));
+
+    expect(cache.delete).toHaveBeenCalledWith('recipes');
+    expect(cache.delete).toHaveBeenCalledWith('categories:all');
+  });
+
+  it('không xóa cache danh mục khi chuyển công thức Draft', async () => {
+    const { db } = buildDb({
+      category: { id: nextCategoryId },
+      includeCategoryLookup: true,
+      updated: { ...updatedRecipe, categoryId: nextCategoryId },
+    });
+    const cache = buildCache();
+    const handler = new UpdateRecipeHandler(db as never, cache);
+
+    await handler.execute(command({ categoryId: nextCategoryId }));
+
+    expect(cache.delete).not.toHaveBeenCalledWith('categories:all');
+  });
+
+  it('không xóa cache danh mục khi chỉ sửa nội dung công thức Published', async () => {
+    const { db } = buildDb({
+      existing: {
+        id: recipeId,
+        authorId: ownerId,
+        status: 'Published',
+        categoryId: updatedRecipe.categoryId,
+      },
+      updated: { ...updatedRecipe, status: 'Published' },
+    });
+    const cache = buildCache();
+    const handler = new UpdateRecipeHandler(db as never, cache);
+
+    await handler.execute(command({ title: updatedRecipe.title }));
+
+    expect(cache.delete).toHaveBeenCalledWith('recipes');
+    expect(cache.delete).not.toHaveBeenCalledWith('categories:all');
+  });
 
   it('từ chối Author không sở hữu recipe trước khi update', async () => {
     const { db, tx } = buildDb();

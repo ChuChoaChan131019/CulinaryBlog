@@ -11,7 +11,7 @@ describe('DeleteRecipeHandler', () => {
     role: 'Author' as const,
   };
   const admin = { ...owner, role: 'Admin' as const };
-  const recipe = { id: recipeId, authorId: owner.id };
+  const recipe = { id: recipeId, authorId: owner.id, status: 'Draft' as const };
   const sourceObjectKeys = [
     'recipes/recipe-1/original.jpg',
     'recipes/recipe-1/other.png',
@@ -25,7 +25,7 @@ describe('DeleteRecipeHandler', () => {
     'recipes/recipe-1/other-thumbnail.webp',
   ];
 
-  function buildHandler() {
+  function buildHandler(status: 'Draft' | 'Published' | 'Archived' = 'Draft') {
     const deleteWhere = jest.fn().mockResolvedValue([]);
     const tx = {
       select: jest.fn((_selection: Record<string, unknown>) => ({
@@ -33,7 +33,7 @@ describe('DeleteRecipeHandler', () => {
           if (table === recipes) {
             return {
               where: jest.fn(() => ({
-                limit: jest.fn().mockResolvedValue([recipe]),
+                limit: jest.fn().mockResolvedValue([{ ...recipe, status }]),
               })),
             };
           }
@@ -64,15 +64,31 @@ describe('DeleteRecipeHandler', () => {
     return { handler, db, tx, cache, imageCleanup, deleteWhere };
   }
 
-  it('hard-deletes the recipe, invalidates cache and enqueues image cleanup', async () => {
-    const { handler, tx, cache, imageCleanup, deleteWhere } = buildHandler();
+  it.each(['Draft', 'Archived'] as const)(
+    'hard-deletes a %s recipe without changing category counts',
+    async (status) => {
+      const { handler, tx, cache, imageCleanup, deleteWhere } =
+        buildHandler(status);
+
+      await handler.execute(new DeleteRecipeCommand(recipeId, owner));
+
+      expect(deleteWhere).toHaveBeenCalled();
+      expect(cache.delete).toHaveBeenCalledWith('recipes');
+      expect(cache.delete).not.toHaveBeenCalledWith('categories:all');
+      expect(imageCleanup.enqueue).toHaveBeenCalledWith({
+        recipeId,
+        objectKeys,
+      });
+      expect(tx.select).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('xóa cache danh mục sau khi xóa công thức Published', async () => {
+    const { handler, cache } = buildHandler('Published');
 
     await handler.execute(new DeleteRecipeCommand(recipeId, owner));
 
-    expect(deleteWhere).toHaveBeenCalled();
-    expect(cache.delete).toHaveBeenCalledWith('recipes');
-    expect(imageCleanup.enqueue).toHaveBeenCalledWith({ recipeId, objectKeys });
-    expect(tx.select).toHaveBeenCalledTimes(2);
+    expect(cache.delete).toHaveBeenCalledWith('categories:all');
   });
 
   it('allows Admin to delete another author’s recipe', async () => {
@@ -85,7 +101,7 @@ describe('DeleteRecipeHandler', () => {
   });
 
   it('rejects a non-owner', async () => {
-    const { handler } = buildHandler();
+    const { handler, cache } = buildHandler('Published');
     const otherAuthor = {
       ...owner,
       id: '9bd2d8a9-d4b1-4ad0-8b0a-3e0c7b1ad999',
@@ -94,10 +110,11 @@ describe('DeleteRecipeHandler', () => {
     await expect(
       handler.execute(new DeleteRecipeCommand(recipeId, otherAuthor)),
     ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(cache.delete).not.toHaveBeenCalled();
   });
 
   it('returns 404 when the recipe does not exist', async () => {
-    const { handler, tx } = buildHandler();
+    const { handler, tx, cache } = buildHandler();
     (tx.select as jest.Mock).mockImplementationOnce(() => ({
       from: jest.fn(() => ({
         where: jest.fn(() => ({ limit: jest.fn().mockResolvedValue([]) })),
@@ -107,6 +124,7 @@ describe('DeleteRecipeHandler', () => {
     await expect(
       handler.execute(new DeleteRecipeCommand(recipeId, owner)),
     ).rejects.toBeInstanceOf(NotFoundException);
+    expect(cache.delete).not.toHaveBeenCalled();
   });
 
   it('does not fail the 204 flow when enqueue fails, but logs the failure', async () => {
