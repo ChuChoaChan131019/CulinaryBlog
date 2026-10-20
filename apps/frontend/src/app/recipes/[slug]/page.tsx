@@ -6,6 +6,7 @@ import { cache } from "react";
 import { ApiError, apiGet, apiGetPaged } from "@/lib/api";
 import RecipeDetailClient from "./RecipeDetailClient";
 import type { RecipeDetail, RelatedRecipe } from "./recipe-detail.helpers";
+import { buildRecipeJsonLd, getRecipeImageUrl, serializeJsonLd } from "./recipe-json-ld";
 
 interface RecipePageProps {
   params: Promise<{ slug: string }>;
@@ -32,30 +33,48 @@ const loadPublicRecipe = cache(async (slug: string): Promise<PublicRecipeResult>
   }
 });
 
+function recipeUrl(slug: string): string {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.AUTH_URL || process.env.PUBLIC_SITE_URL || "http://localhost:3000";
+  return new URL(`/recipes/${encodeURIComponent(slug)}`, siteUrl).href;
+}
+
 export async function generateMetadata({ params }: RecipePageProps): Promise<Metadata> {
   const { slug } = await params;
   const result = await loadPublicRecipe(slug);
 
   if (result.kind !== "ok") {
     return {
-      title: result.kind === "forbidden" ? "Công thức riêng tư — Culinary Blog" : "Không tìm thấy công thức",
+      title: { absolute: result.kind === "forbidden" ? "Công thức riêng tư | Culinary Blog" : "Không tìm thấy công thức | Culinary Blog" },
       description: "Công thức này không khả dụng trên Culinary Blog.",
       robots: { index: false, follow: false },
     };
   }
 
   const { recipe } = result;
-  const description = recipe.description ?? recipe.excerpt ?? "Công thức nấu ăn trên Culinary Blog.";
-  const image = recipe.images.find((item) => item.isPrimary) ?? recipe.images[0];
+  const description = (recipe.description?.trim() || recipe.excerpt?.trim() || "Công thức nấu ăn trên Culinary Blog.")
+    .replace(/\s+/g, " ")
+    .slice(0, 160);
+  const titleSuffix = " | Culinary Blog";
+  const title = `${recipe.title.trim().slice(0, 60 - titleSuffix.length).trimEnd()}${titleSuffix}`;
+  const image = getRecipeImageUrl(recipe);
+  const url = recipeUrl(recipe.slug);
 
   return {
-    title: `${recipe.title} — Culinary Blog`,
+    title: { absolute: title },
     description,
+    ...(recipe.status === "Published" ? { alternates: { canonical: url } } : {}),
     openGraph: {
-      title: `${recipe.title} — Culinary Blog`,
+      title,
       description,
       type: "article",
-      images: image ? [{ url: image.mediumUrl ?? image.originalUrl, alt: image.altText ?? recipe.title }] : [],
+      url,
+      images: image ? [{ url: image, alt: recipe.title }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: image ? [image] : [],
     },
     ...(recipe.status === "Published" ? {} : { robots: { index: false, follow: false } }),
   };
@@ -71,14 +90,23 @@ export default async function RecipePage({ params }: RecipePageProps) {
 
   const initialRecipe = result.kind === "ok" ? result.recipe : null;
   const initialRelated = initialRecipe ? await loadRelatedRecipes(initialRecipe) : [];
+  const jsonLd = initialRecipe ? buildRecipeJsonLd(initialRecipe, recipeUrl(initialRecipe.slug)) : null;
 
   return (
-    <RecipeDetailClient
-      slug={slug}
-      initialRecipe={initialRecipe}
-      initialRelated={initialRelated}
-      requiresAuth={result.kind === "forbidden"}
-    />
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+        />
+      )}
+      <RecipeDetailClient
+        slug={slug}
+        initialRecipe={initialRecipe}
+        initialRelated={initialRelated}
+        requiresAuth={result.kind === "forbidden"}
+      />
+    </>
   );
 }
 
