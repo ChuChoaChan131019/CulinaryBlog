@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { RequireRole } from '@/components/RequireRole';
 import { RecipeDashboard } from './RecipeDashboard';
+import { DashboardLoading } from '../loading';
 
 export const metadata: Metadata = {
   title: 'Quản lý công thức',
@@ -16,13 +17,5 @@ export default function DashboardRecipesPage() {
         <RecipeDashboard />
       </Suspense>
     </RequireRole>
-  );
-}
-
-function DashboardLoading() {
-  return (
-    <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6" aria-busy="true">
-      <p className="text-sm text-muted-foreground">Đang tải danh sách công thức…</p>
-    </main>
   );
 }

@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pagination } from '@/components/Pagination';
+import { ErrorState } from '@/components/ErrorState';
 import { ApiError } from '@/lib/api';
 import { apiAuthed, apiAuthedPaged, useSession } from '@/lib/auth';
 import {
@@ -198,13 +199,15 @@ export function RecipeDashboard() {
       </div>
 
       {loadError ? (
-        <div className="mt-6 rounded-2xl border border-destructive/30 bg-card px-6 py-12 text-center" role="alert">
-          <p className="font-display text-xl">Không thể tải danh sách</p>
-          <p className="mt-2 text-sm text-muted-foreground">{loadError}</p>
-          <button type="button" onClick={() => { setListState(null); void fetchRecipes(); }} className="mt-5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
-            Thử lại
-          </button>
-        </div>
+        <ErrorState
+          title="Không thể tải danh sách"
+          message={loadError}
+          onRetry={() => {
+            setListState(null);
+            void fetchRecipes();
+          }}
+          className="mt-6 max-w-none"
+        />
       ) : isLoading ? (
         <div className="mt-6 rounded-2xl border border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground" aria-busy="true">
           <Loader2 className="mx-auto mb-3 h-5 w-5 animate-spin" aria-hidden />

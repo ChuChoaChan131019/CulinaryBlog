@@ -1,11 +1,13 @@
 import type { CategoryDetailDto } from "@culinary/shared";
-import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ErrorState } from "@/components/ErrorState";
 import { CategoryVisual } from "../category-visual";
 import { RecipeCard } from "@/components/RecipeCard";
 import { ApiError, apiGet } from "@/lib/api";
+import { toErrorStateInfo, type ErrorStateInfo } from "@/lib/error-state";
 
 export async function generateMetadata({
   params,
@@ -47,11 +49,11 @@ interface CategoryPageProps {
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const [{ slug }, rawSearchParams] = await Promise.all([params, searchParams]);
   const page = normalizePage(firstValue(rawSearchParams.page));
-  const detail = await loadCategory(slug, page);
+  const result = await loadCategory(slug, page);
 
-  if (!detail) return <CategoryError slug={slug} />;
+  if (!result.detail) return <CategoryError slug={slug} error={result.error} />;
 
-  const { category, recipes } = detail;
+  const { category, recipes } = result.detail;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
@@ -120,16 +122,24 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   );
 }
 
-async function loadCategory(slug: string, page: number): Promise<CategoryDetailDto | null> {
+async function loadCategory(
+  slug: string,
+  page: number,
+): Promise<
+  | { detail: CategoryDetailDto; error?: never }
+  | { detail: null; error: ErrorStateInfo }
+> {
   try {
-    return await apiGet<CategoryDetailDto>(
-      `/categories/${encodeURIComponent(slug)}`,
-      { page, pageSize: PAGE_SIZE },
-      { next: { revalidate } },
-    );
+    return {
+      detail: await apiGet<CategoryDetailDto>(
+        `/categories/${encodeURIComponent(slug)}`,
+        { page, pageSize: PAGE_SIZE },
+        { next: { revalidate } },
+      ),
+    };
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
-    return null;
+    return { detail: null, error: toErrorStateInfo(error) };
   }
 }
 
@@ -203,29 +213,15 @@ function buildCategoryHref(slug: string, page: number): string {
   return `/categories/${encodeURIComponent(slug)}?page=${page}`;
 }
 
-function CategoryError({ slug }: { slug: string }) {
+function CategoryError({ slug, error }: { slug: string; error: ErrorStateInfo }) {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Danh mục</p>
-      <h1 className="mt-3 font-display text-3xl">Không thể tải danh mục</h1>
-      <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-        Máy chủ đang bận hoặc kết nối bị gián đoạn. Vui lòng thử tải lại trang.
-      </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <Link
-          href={`/categories/${encodeURIComponent(slug)}`}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          <RotateCcw className="h-4 w-4" aria-hidden />
-          Tải lại
-        </Link>
-        <Link
-          href="/categories"
-          className="inline-flex items-center rounded-full border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
-        >
-          Về danh mục
-        </Link>
-      </div>
-    </div>
+    <ErrorState
+      error={error}
+      title="Không thể tải danh mục"
+      retryHref={`/categories/${encodeURIComponent(slug)}`}
+      homeHref="/categories"
+      homeLabel="Về danh mục"
+      className="mx-auto mt-16 max-w-3xl px-4 sm:px-6"
+    />
   );
 }

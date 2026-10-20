@@ -1,6 +1,8 @@
 import type { CategoryDto } from "@culinary/shared";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ErrorState } from "@/components/ErrorState";
+import { toErrorStateInfo, type ErrorStateInfo } from "@/lib/error-state";
 import { CategoryVisual } from "./category-visual";
 import { apiGet } from "@/lib/api";
 
@@ -29,7 +31,8 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function CategoriesPage() {
-  const categories = await loadCategories();
+  const result = await loadCategories();
+  const categories = result.categories;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
@@ -70,19 +73,24 @@ export default async function CategoriesPage() {
           <EmptyCategories />
         )
       ) : (
-        <CategoriesError />
+        <CategoriesError error={result.error} />
       )}
     </div>
   );
 }
 
-async function loadCategories(): Promise<CategoryDto[] | null> {
+async function loadCategories(): Promise<{
+  categories: CategoryDto[] | null;
+  error?: ErrorStateInfo;
+}> {
   try {
-    return await apiGet<CategoryDto[]>("/categories", undefined, {
-      next: { revalidate },
-    });
-  } catch {
-    return null;
+    return {
+      categories: await apiGet<CategoryDto[]>("/categories", undefined, {
+        next: { revalidate },
+      }),
+    };
+  } catch (error) {
+    return { categories: null, error: toErrorStateInfo(error) };
   }
 }
 
@@ -97,22 +105,13 @@ function EmptyCategories() {
   );
 }
 
-function CategoriesError() {
+function CategoriesError({ error }: { error?: ErrorStateInfo }) {
   return (
-    <div
-      role="alert"
-      className="mt-10 rounded-2xl border border-destructive/30 bg-card px-6 py-12 text-center"
-    >
-      <p className="font-display text-2xl">Không thể tải danh mục</p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        Máy chủ đang bận hoặc kết nối bị gián đoạn. Vui lòng thử tải lại trang.
-      </p>
-      <Link
-        href="/categories"
-        className="mt-5 inline-flex items-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-      >
-        Tải lại
-      </Link>
-    </div>
+    <ErrorState
+      error={error}
+      title="Không thể tải danh mục"
+      retryHref="/categories"
+      className="mt-10"
+    />
   );
 }

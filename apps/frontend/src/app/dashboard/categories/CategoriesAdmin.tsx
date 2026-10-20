@@ -3,6 +3,7 @@
 import { AlertTriangle, CheckCircle2, Loader2, Plus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CategoryDto, CreateCategoryRequest, CreatedCategoryDto } from '@culinary/shared';
+import { ErrorState } from '@/components/ErrorState';
 import { apiAuthed } from '@/lib/auth';
 import { CategoryRow, type CategoryUpdate } from './CategoryRow';
 import { categoryErrorMessage, validateCategoryName } from './helpers';
@@ -227,16 +228,12 @@ export function CategoriesAdmin() {
         </div>
 
         {loadError && (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
-            <p>{loadError}</p>
-            <button
-              type="button"
-              className="mt-3 rounded-full border border-destructive/40 px-4 py-2 text-xs font-semibold hover:bg-destructive/10"
-              onClick={() => void reloadCategories()}
-            >
-              Thử lại
-            </button>
-          </div>
+          <ErrorState
+            title="Không thể tải danh mục"
+            message={loadError}
+            onRetry={() => void reloadCategories()}
+            className="max-w-none px-4 py-6"
+          />
         )}
 
         {isLoading && categories === null && (
