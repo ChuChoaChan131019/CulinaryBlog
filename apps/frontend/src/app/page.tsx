@@ -3,12 +3,13 @@ import type { Metadata } from "next";
 import { ArrowRight, Search, Timer } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { CategoryIcon } from "@/components/CategoryIcon";
+import { CategorySidebar } from "@/components/CategorySidebar";
 import { RecipeCard } from "@/components/RecipeCard";
 import { apiGet, apiGetPaged } from "@/lib/api";
+import { toErrorStateInfo, type ErrorStateInfo } from "@/lib/error-state";
 
-// Trang chủ là nội dung công khai, đổi theo nhịp đăng bài -> ISR 5 phút thay vì SSR mỗi request.
-export const revalidate = 300;
+// Trang chủ là nội dung công khai, dùng ISR theo TTL của module categories trong SRS.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   alternates: {
@@ -29,6 +30,21 @@ async function safe<T>(promise: Promise<T>, fallback: T): Promise<T> {
   }
 }
 
+interface CategoriesResult {
+  data: CategoryDto[];
+  error?: ErrorStateInfo;
+}
+
+async function loadCategories(): Promise<CategoriesResult> {
+  try {
+    return {
+      data: await apiGet<CategoryDto[]>("/categories", undefined, { next: { revalidate } }),
+    };
+  } catch (error) {
+    return { data: [], error: toErrorStateInfo(error) };
+  }
+}
+
 const emptyPage: PagedResponse<RecipeSummaryDto> = {
   data: [],
   meta: {
@@ -42,11 +58,25 @@ const emptyPage: PagedResponse<RecipeSummaryDto> = {
 };
 
 export default async function HomePage() {
-  const [categories, featured, quick] = await Promise.all([
-    safe(apiGet<CategoryDto[]>("/categories"), [] as CategoryDto[]),
-    safe(apiGetPaged<RecipeSummaryDto>("/recipes", { pageSize: 6 }), emptyPage),
+  const [{ data: categories, error: categoryError }, featured, quick] = await Promise.all([
+    loadCategories(),
+    safe(
+      apiGetPaged<RecipeSummaryDto>(
+        "/recipes",
+        { pageSize: 6, sort: "-createdAt" },
+        { next: { revalidate } },
+      ),
+      emptyPage,
+    ),
     // pageSize 1: chỉ cần totalCount cho con số "dưới 30 phút", không cần danh sách.
-    safe(apiGetPaged<RecipeSummaryDto>("/recipes", { pageSize: 1, maxCookTime: 30 }), emptyPage),
+    safe(
+      apiGetPaged<RecipeSummaryDto>(
+        "/recipes",
+        { pageSize: 1, maxCookTime: 30 },
+        { next: { revalidate } },
+      ),
+      emptyPage,
+    ),
   ]);
 
   return (
@@ -129,56 +159,31 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {categories.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-          <SectionHead
-            title="Danh mục"
-            subtitle="Chọn kiểu món, rồi chọn món."
-            href="/categories"
-            linkLabel="Xem tất cả"
-          />
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+        <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
+          <CategorySidebar categories={categories} error={categoryError} />
 
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {categories.map((c) => (
-              <Link
-                key={c.id}
-                href={`/recipes?categoryId=${c.id}`}
-                className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-card transition-all hover:-translate-y-1 hover:shadow-lift"
-              >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                  <CategoryIcon name={c.name} className="h-5 w-5" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate font-display text-base">{c.name}</span>
-                  <span className="block text-xs text-muted-foreground">
-                    {c.recipeCount} công thức
-                  </span>
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+          <section className="min-w-0">
+            <SectionHead
+              title="Công thức mới nhất"
+              subtitle="Những món vừa được đăng trên blog."
+              href="/recipes"
+              linkLabel="Tất cả công thức"
+            />
 
-      <section className="mx-auto max-w-7xl px-4 pb-8 pt-4 sm:px-6">
-        <SectionHead
-          title="Công thức mới nhất"
-          subtitle="Những món vừa được đăng trên blog."
-          href="/recipes"
-          linkLabel="Tất cả công thức"
-        />
-
-        {featured.data.length > 0 ? (
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.data.map((r) => (
-              <RecipeCard key={r.id} recipe={r} />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-8 rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
-            Chưa có công thức nào được đăng. Hãy là người đầu tiên chia sẻ món của bạn.
-          </p>
-        )}
+            {featured.data.length > 0 ? (
+              <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {featured.data.map((r) => (
+                  <RecipeCard key={r.id} recipe={r} />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-8 rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
+                Chưa có công thức nào được đăng. Hãy là người đầu tiên chia sẻ món của bạn.
+              </p>
+            )}
+          </section>
+        </div>
 
         <div className="mt-10 rounded-3xl bg-ink px-6 py-12 text-center text-ink-foreground sm:px-12">
           <h2 className="font-display text-3xl">Nấu món đáng để ghi lại</h2>
