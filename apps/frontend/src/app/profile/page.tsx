@@ -1,11 +1,16 @@
 'use client';
 
 import { CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { UserProfileDto } from '@culinary/shared';
 import { ApiError } from '@/lib/api';
-import { updateProfile, useSession } from '@/lib/auth';
+import { changePassword, updateProfile, useSession } from '@/lib/auth';
 import { RequireRole } from '@/components/RequireRole';
+import {
+  changePasswordErrorMessage,
+  validateChangePassword,
+} from './change-password.helpers';
 
 function initialsOf(name: string): string {
   return (
@@ -124,6 +129,96 @@ function ProfileForm({ initial }: { initial: UserProfileDto }) {
           {saving ? 'Đang lưu…' : 'Lưu thay đổi'}
         </button>
       </form>
+
+      <ChangePasswordForm />
     </div>
+  );
+}
+
+function ChangePasswordForm() {
+  const router = useRouter();
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const validationError = validateChangePassword(
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    );
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await changePassword(currentPassword, newPassword);
+      router.push('/login?message=changed_password');
+    } catch (err) {
+      setError(changePasswordErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form
+      className="mt-8 space-y-5 rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8"
+      onSubmit={handleSubmit}
+    >
+      <h2 className="font-display text-xl">Đổi mật khẩu</h2>
+      {error && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium">Mật khẩu hiện tại</span>
+        <input
+          type="password"
+          required
+          className="field"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+        />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium">Mật khẩu mới</span>
+        <input
+          type="password"
+          required
+          minLength={8}
+          className="field"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+        />
+        <span className="mt-1 block text-xs text-muted-foreground">
+          Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
+        </span>
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium">Xác nhận mật khẩu mới</span>
+        <input
+          type="password"
+          required
+          className="field"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+      >
+        {saving ? 'Đang đổi mật khẩu…' : 'Cập nhật mật khẩu'}
+      </button>
+    </form>
   );
 }

@@ -68,3 +68,14 @@ export const authGoogleTokenInvalid = () =>
     status: HttpStatus.BAD_REQUEST,
     detail: 'AUTH_GOOGLE_TOKEN_INVALID',
   });
+
+export const authPasswordNotSet = () =>
+  new HttpException(
+    {
+      type: 'about:blank',
+      title: 'Tài khoản đăng nhập qua Google chưa thiết lập mật khẩu',
+      status: HttpStatus.UNPROCESSABLE_ENTITY,
+      detail: 'AUTH_PASSWORD_NOT_SET',
+    },
+    HttpStatus.UNPROCESSABLE_ENTITY,
+  );

@@ -272,3 +272,11 @@ export async function updateProfile(
   if (current) setSession({ ...current, user });
   return user;
 }
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await apiAuthed<void>('/auth/me/password', {
+    method: 'PUT',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  setSession(null);
+}

@@ -12,6 +12,7 @@ import { LogoutHandler } from './commands/logout.handler';
 import { RefreshTokenHandler } from './commands/refresh-token.handler';
 import { RegisterHandler } from './commands/register.handler';
 import { UpdateProfileHandler } from './commands/update-profile.handler';
+import { ChangePasswordHandler } from './commands/change-password.handler';
 import { GetMeHandler } from './queries/get-me.handler';
 
 const CommandHandlers = [
@@ -21,8 +22,8 @@ const CommandHandlers = [
   GoogleLoginHandler,
   LogoutHandler,
   UpdateProfileHandler,
+  ChangePasswordHandler,
 ];
-
 const QueryHandlers = [GetMeHandler];
 
 @Module({

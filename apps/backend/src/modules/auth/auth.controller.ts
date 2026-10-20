@@ -7,15 +7,17 @@ import {
   Ip,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthenticatedUser } from '../../common/auth/authenticated-user';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { GoogleLoginCommand } from './commands/google-login.command';
+import { ChangePasswordCommand } from './commands/change-password.command';
 import { TokenPair } from './commands/issue-tokens';
 import { LoginCommand } from './commands/login.command';
 import { LoginResult } from './commands/login.handler';
@@ -26,6 +28,7 @@ import { RegisterCommand } from './commands/register.command';
 import { RegisterResult } from './commands/register.handler';
 import { UpdateProfileCommand } from './commands/update-profile.command';
 import { GoogleLoginDto } from './dto/google-login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -92,5 +95,22 @@ export class AuthController {
     @Body() dto: UpdateProfileDto,
   ): Promise<MeResult> {
     return this.commandBus.execute(new UpdateProfileCommand(user.id, dto));
+  }
+
+  @Put('me/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Đổi mật khẩu người dùng hiện tại' })
+  @ApiResponse({ status: HttpStatus.NO_CONTENT, description: 'Đổi mật khẩu thành công' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Mật khẩu hiện tại không đúng' })
+  @ApiResponse({ status: HttpStatus.UNPROCESSABLE_ENTITY, description: 'Tài khoản chưa thiết lập mật khẩu' })
+  changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<void> {
+    return this.commandBus.execute(
+      new ChangePasswordCommand(user.id, dto.currentPassword, dto.newPassword),
+    );
   }
 }

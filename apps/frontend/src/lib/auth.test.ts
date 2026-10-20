@@ -16,7 +16,7 @@ const localStorageStub = {
 vi.stubGlobal('window', { localStorage: localStorageStub, addEventListener() {}, removeEventListener() {} });
 vi.stubGlobal('localStorage', localStorageStub);
 
-const { apiAuthed, apiAuthedPaged, getSession, login, logout, refresh, setSession } = await import('./auth');
+const { apiAuthed, apiAuthedPaged, changePassword, getSession, login, logout, refresh, setSession } = await import('./auth');
 
 const user = { id: 'u1', email: 'a@b.c', displayName: 'A', avatarUrl: null, bio: null, role: 'Author' as const, createdAt: '' };
 
@@ -205,6 +205,26 @@ describe('logout', () => {
 
     await logout();
 
+    expect(getSession()).toBeNull();
+  });
+});
+
+describe('changePassword', () => {
+  it('gọi PUT /auth/me/password và xóa phiên khi thành công', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await changePassword('OldPass@123', 'NewPass@123');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/me/password'),
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({
+          currentPassword: 'OldPass@123',
+          newPassword: 'NewPass@123',
+        }),
+      }),
+    );
     expect(getSession()).toBeNull();
   });
 });
