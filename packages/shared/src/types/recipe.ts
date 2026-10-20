@@ -86,6 +86,7 @@ export interface RecipeSummaryDto {
   category: Pick<CategoryDto, "id" | "name" | "slug">;
   publishedAt: string | null;
   createdAt: string;
+  updatedAt?: string | null;
 }
 
 export interface RecipeSearchResultDto extends RecipeSummaryDto {

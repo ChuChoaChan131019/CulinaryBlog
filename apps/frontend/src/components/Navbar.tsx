@@ -1,9 +1,11 @@
 "use client";
 
-import { ChefHat, LogIn, Menu, PenLine, Search, X } from "lucide-react";
+import { ChefHat, ClipboardList, LogIn, Menu, PenLine, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { useSession } from "@/lib/auth";
+import { canManageRecipes } from "@/lib/recipe-dashboard";
 
 const links = [
   { href: "/", label: "Trang chủ" },
@@ -16,6 +18,8 @@ export function Navbar() {
   const [query, setQuery] = useState("");
   const router = useRouter();
   const pathname = usePathname();
+  const session = useSession();
+  const showRecipeDashboard = canManageRecipes(session?.user.role);
 
   // Link "/" chỉ active khi đúng trang chủ; các link khác active cả trang con.
   const isActive = (href: string) =>
@@ -52,6 +56,18 @@ export function Navbar() {
               {l.label}
             </Link>
           ))}
+          {showRecipeDashboard && (
+            <Link
+              href="/dashboard/recipes"
+              aria-current={isActive("/dashboard/recipes") ? "page" : undefined}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors hover:text-foreground ${
+                isActive("/dashboard/recipes") ? "bg-primary-soft text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <ClipboardList className="h-4 w-4" aria-hidden />
+              Quản lý công thức
+            </Link>
+          )}
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -75,10 +91,6 @@ export function Navbar() {
             Viết công thức
           </Link>
 
-          {/* Chưa có phiên đăng nhập ở client (việc của #66 FE-AUTH-003) nên navbar
-              đang ở trạng thái khách: chỉ hiện lối vào /login, không có menu user
-              và không có role switcher như mockup — switcher đó là công cụ demo,
-              đưa vào app thật sẽ thành đường leo quyền. */}
           <Link
             href="/login"
             className="inline-flex h-11 items-center gap-2 rounded-full border border-border px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -124,6 +136,16 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
+            {showRecipeDashboard && (
+              <Link
+                href="/dashboard/recipes"
+                onClick={() => setOpen(false)}
+                aria-current={isActive("/dashboard/recipes") ? "page" : undefined}
+                className="rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                Quản lý công thức
+              </Link>
+            )}
             <Link
               href="/dashboard/recipes/new"
               onClick={() => setOpen(false)}

@@ -1,8 +1,8 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import type { AuthResponseDto, UserProfileDto, UserRole } from '@culinary/shared';
-import { ApiError, baseUrl, parse, requestHeaders } from './api';
+import type { AuthResponseDto, PagedResponse, UserProfileDto, UserRole } from '@culinary/shared';
+import { ApiError, baseUrl, parse, parsePaged, requestHeaders } from './api';
 
 /**
  * Lớp quản lý phiên đăng nhập phía client.
@@ -201,6 +201,25 @@ export async function apiAuthed<T>(path: string, init: RequestInit = {}): Promis
     res = await send(renewed.accessToken);
   }
   return parse<T>(res);
+}
+
+/** Gọi API phân trang cần đăng nhập, giữ meta và tự refresh token như apiAuthed. */
+export async function apiAuthedPaged<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<PagedResponse<T>> {
+  const send = async (token: string | undefined) => fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: requestHeaders(init, token),
+  });
+
+  let res = await send(getSession()?.accessToken);
+  if (res.status === 401) {
+    const renewed = await refresh();
+    if (!renewed) throw new ApiError(401, null);
+    res = await send(renewed.accessToken);
+  }
+  return parsePaged<T>(res);
 }
 
 /** Upload multipart có tiến trình và dùng cùng cơ chế refresh token với apiAuthed. */

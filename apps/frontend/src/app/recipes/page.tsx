@@ -1,9 +1,10 @@
 import type { CategoryDto, RecipeSummaryDto } from "@culinary/shared";
-import { ChevronLeft, ChevronRight, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { RecipeCard } from "@/components/RecipeCard";
+import { Pagination } from "@/components/Pagination";
 import { apiGet, apiGetPaged } from "@/lib/api";
 
 export const metadata: Metadata = {
@@ -116,7 +117,12 @@ async function RecipeList({ query }: { query: RecipeListQuery }) {
               <RecipeCard key={recipe.id} recipe={recipe} />
             ))}
           </div>
-          <RecipePagination query={query} meta={recipes.meta} />
+          <Pagination
+            meta={recipes.meta}
+            hrefForPage={(page) => buildRecipesHref(query, page)}
+            label="Phân trang công thức"
+            className="justify-between border-t border-border pt-6"
+          />
         </>
       ) : (
         <div className="mt-12 rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center">
@@ -226,68 +232,6 @@ function RecipeFilters({
         <span className="hidden lg:block" aria-hidden />
       )}
     </form>
-  );
-}
-
-function RecipePagination({
-  query,
-  meta,
-}: {
-  query: RecipeListQuery;
-  meta: {
-    page: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-  };
-}) {
-  if (meta.totalPages <= 1) return null;
-
-  return (
-    <nav
-      aria-label="Phân trang công thức"
-      className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6"
-    >
-      {meta.hasPreviousPage ? (
-        <Link
-          href={buildRecipesHref(query, meta.page - 1)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          Trang trước
-        </Link>
-      ) : (
-        <span
-          aria-disabled="true"
-          className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm text-muted-foreground opacity-50"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          Trang trước
-        </span>
-      )}
-
-      <p className="text-sm text-muted-foreground" aria-live="polite">
-        Trang <span className="font-semibold text-foreground">{meta.page}</span> / {meta.totalPages}
-      </p>
-
-      {meta.hasNextPage ? (
-        <Link
-          href={buildRecipesHref(query, meta.page + 1)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
-        >
-          Trang sau
-          <ChevronRight className="h-4 w-4" aria-hidden />
-        </Link>
-      ) : (
-        <span
-          aria-disabled="true"
-          className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm text-muted-foreground opacity-50"
-        >
-          Trang sau
-          <ChevronRight className="h-4 w-4" aria-hidden />
-        </span>
-      )}
-    </nav>
   );
 }
 

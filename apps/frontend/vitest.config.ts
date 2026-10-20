@@ -2,6 +2,8 @@ import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // Next.js uses the automatic React JSX runtime for TSX components.
+  esbuild: { jsx: 'automatic' },
   resolve: {
     // Khớp alias "@/*" -> "./src/*" khai báo ở tsconfig.json, vitest không tự đọc tsconfig paths.
     alias: { '@': path.resolve(__dirname, './src') },

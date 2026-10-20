@@ -5,6 +5,7 @@ import { validate } from 'class-validator';
 import {
   GetRecipesQueryDto,
   RecipeListDifficulty,
+  RecipeListStatus,
 } from './get-recipes-query.dto';
 
 describe('GetRecipesQueryDto', () => {
@@ -30,6 +31,39 @@ describe('GetRecipesQueryDto', () => {
     expect(dto.page).toBe(2);
     expect(dto.maxCookTime).toBe(45);
     expect(dto.minServings).toBe(2);
+  });
+
+  it.each([
+    ['true', true],
+    ['false', false],
+  ])('chuyển mine=%s thành boolean', async (value, expected) => {
+    const dto = plainToInstance(GetRecipesQueryDto, { mine: value });
+
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(dto.mine).toBe(expected);
+  });
+
+  it.each(Object.values(RecipeListStatus))(
+    'chấp nhận lọc trạng thái %s',
+    async (status) => {
+      const dto = plainToInstance(GetRecipesQueryDto, { status });
+
+      await expect(validate(dto)).resolves.toHaveLength(0);
+      expect(dto.status).toBe(status);
+    },
+  );
+
+  it('từ chối mine và status không hợp lệ', async () => {
+    const dto = plainToInstance(GetRecipesQueryDto, {
+      mine: 'yes',
+      status: 'Unknown',
+    });
+
+    const errors = await validate(dto);
+
+    expect(errors.map((error) => error.property)).toEqual(
+      expect.arrayContaining(['mine', 'status']),
+    );
   });
 
   it('từ chối phân trang, bộ lọc và cách sắp xếp không hợp lệ', async () => {

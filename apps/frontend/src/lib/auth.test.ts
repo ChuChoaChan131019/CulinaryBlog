@@ -16,7 +16,7 @@ const localStorageStub = {
 vi.stubGlobal('window', { localStorage: localStorageStub, addEventListener() {}, removeEventListener() {} });
 vi.stubGlobal('localStorage', localStorageStub);
 
-const { apiAuthed, getSession, login, logout, refresh, setSession } = await import('./auth');
+const { apiAuthed, apiAuthedPaged, getSession, login, logout, refresh, setSession } = await import('./auth');
 
 const user = { id: 'u1', email: 'a@b.c', displayName: 'A', avatarUrl: null, bio: null, role: 'Author' as const, createdAt: '' };
 
@@ -136,6 +136,66 @@ describe('apiAuthed', () => {
 
     await expect(apiAuthed('/recipes')).rejects.toMatchObject({ status: 403, code: 'AUTH_ACCOUNT_DISABLED' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('apiAuthedPaged', () => {
+  it('gửi access token và giữ metadata phân trang', async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        data: [{ id: 'recipe-1' }],
+        meta: {
+          totalCount: 13,
+          page: 2,
+          pageSize: 12,
+          totalPages: 2,
+          hasNextPage: false,
+          hasPreviousPage: true,
+        },
+      }),
+    );
+
+    const result = await apiAuthedPaged('/recipes?mine=true&page=2', {
+      cache: 'no-store',
+    });
+
+    expect(result.data).toEqual([{ id: 'recipe-1' }]);
+    expect(result.meta).toMatchObject({ page: 2, totalPages: 2 });
+    expect(String(fetchMock.mock.calls[0][0])).toContain('mine=true&page=2');
+    expect(new Headers(fetchMock.mock.calls[0][1].headers).get('Authorization')).toBe(
+      'Bearer old-access',
+    );
+  });
+
+  it('refresh access token một lần rồi retry khi request phân trang gặp 401', async () => {
+    fetchMock
+      .mockResolvedValueOnce(json({ status: 401 }, 401))
+      .mockResolvedValueOnce(
+        json({ data: { accessToken: 'fresh', refreshToken: 'r2', expiresIn: 900 } }),
+      )
+      .mockResolvedValueOnce(
+        json({
+          data: [],
+          meta: {
+            totalCount: 0,
+            page: 1,
+            pageSize: 12,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        }),
+      );
+
+    await expect(apiAuthedPaged('/recipes?mine=true')).resolves.toMatchObject({
+      data: [],
+      meta: { totalCount: 0, page: 1 },
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(new Headers(fetchMock.mock.calls[2][1].headers).get('Authorization')).toBe(
+      'Bearer fresh',
+    );
   });
 });
 

@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, UnauthorizedException } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { PagedResult, RecipeSummaryDto } from '@culinary/shared';
 import {
@@ -43,6 +43,14 @@ export class GetRecipesHandler implements IQueryHandler<
     query: GetRecipesQuery,
   ): Promise<PagedResult<RecipeSummaryDto>> {
     const { params } = query;
+    if (params.mine && !query.user) {
+      throw new UnauthorizedException({
+        type: 'AUTH_UNAUTHORIZED',
+        title: 'Yêu cầu đăng nhập',
+        status: 401,
+        detail: 'Bạn cần đăng nhập để xem công thức của mình',
+      });
+    }
     const cacheKey = this.createCacheKey(query);
     const cached = await this.cache.get<PagedResult<RecipeSummaryDto>>(
       cacheKey,
@@ -76,6 +84,7 @@ export class GetRecipesHandler implements IQueryHandler<
         categorySlug: categories.slug,
         publishedAt: recipes.publishedAt,
         createdAt: recipes.createdAt,
+        updatedAt: recipes.updatedAt,
       })
       .from(recipes)
       .innerJoin(users, eq(recipes.authorId, users.id))
@@ -108,6 +117,7 @@ export class GetRecipesHandler implements IQueryHandler<
       },
       publishedAt: row.publishedAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt?.toISOString() ?? null,
     }));
     const totalPages = Math.ceil(totalCount / params.pageSize);
     const result: PagedResult<RecipeSummaryDto> = {
@@ -128,7 +138,9 @@ export class GetRecipesHandler implements IQueryHandler<
     const { params, user, ownerStatuses } = query;
     const conditions: SQL[] = [eq(recipes.isDeleted, false)];
 
-    if (user?.role !== 'Admin') {
+    if (params.mine) {
+      conditions.push(eq(recipes.authorId, user!.id));
+    } else if (user?.role !== 'Admin') {
       conditions.push(
         user
           ? or(
@@ -140,6 +152,9 @@ export class GetRecipesHandler implements IQueryHandler<
             )!
           : eq(recipes.status, 'Published'),
       );
+    }
+    if (params.status) {
+      conditions.push(eq(recipes.status, params.status));
     }
     if (params.categoryId) {
       conditions.push(eq(recipes.categoryId, params.categoryId));
@@ -172,8 +187,9 @@ export class GetRecipesHandler implements IQueryHandler<
 
   private createCacheKey(query: GetRecipesQuery): string {
     const { params, user, ownerStatuses } = query;
-    const visibility =
-      user?.role === 'Admin'
+    const visibility = params.mine && user
+      ? `Mine:${user.id}`
+      : user?.role === 'Admin'
         ? 'Admin'
         : user
           ? `Author:${user.id}${
@@ -188,6 +204,8 @@ export class GetRecipesHandler implements IQueryHandler<
       visibility,
       params.page,
       params.pageSize,
+      params.mine ? 'mine' : 'all',
+      params.status ?? '-',
       params.categoryId ?? '-',
       params.difficulty ?? '-',
       params.maxCookTime ?? '-',

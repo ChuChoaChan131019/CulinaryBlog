@@ -3,9 +3,11 @@
 import type {
   CategoryDto,
   DifficultyLevel,
+  RecipeDetailDto,
   RecipeEditorDto,
   RecipeEditorIngredientDto,
   RecipeEditorStepDto,
+  RecipeImageDto,
 } from '@culinary/shared';
 import { CheckCircle2, Loader2, Save } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -87,8 +89,8 @@ function asStepFieldValue(item: RecipeEditorStepDto): StepFieldValue {
   };
 }
 
-function asUploadedImage(item: RecipeEditorDto['images'][number]): UploadedImage {
-  return { id: item.imageId, url: item.originalUrl, alt: item.altText, isPrimary: item.isPrimary };
+function asUploadedImage(item: RecipeImageDto): UploadedImage {
+  return { id: item.id, url: item.originalUrl, alt: item.altText, isPrimary: item.isPrimary };
 }
 
 function firstError(errors: FieldErrors, ...paths: string[]): string | undefined {
@@ -139,14 +141,14 @@ function toParentPayload(values: RecipeFormValues, mode: RecipeFormMode) {
   };
 }
 
-function asRecipeValues(recipe: RecipeEditorDto): RecipeFormValues {
+function asRecipeValues(recipe: RecipeDetailDto): RecipeFormValues {
   return {
     title: recipe.title,
-    description: recipe.description,
-    categoryId: recipe.categoryId,
+    description: recipe.description ?? '',
+    categoryId: recipe.category.id,
     difficulty: recipe.difficulty,
-    prepTime: String(recipe.prepTime),
-    cookTime: String(recipe.cookTime),
+    prepTime: String(recipe.prepTimeMinutes),
+    cookTime: String(recipe.cookTimeMinutes),
     servings: String(recipe.servings),
     instructions: recipe.instructions,
     nutrition: {
@@ -246,7 +248,7 @@ export default function RecipeForm({ mode, recipeId: initialRecipeId }: RecipeFo
   useEffect(() => {
     if (mode !== 'edit' || !initialRecipeId) return;
     let cancelled = false;
-    void apiAuthed<RecipeEditorDto>(`/recipes/${encodeURIComponent(initialRecipeId)}`)
+    void apiAuthed<RecipeDetailDto>(`/recipes/${encodeURIComponent(initialRecipeId)}`)
       .then((recipe) => {
         if (cancelled) return;
         const nextIngredients = recipe.ingredients.map(asIngredientFieldValue);
