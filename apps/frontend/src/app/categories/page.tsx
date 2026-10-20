@@ -8,6 +8,22 @@ export const metadata: Metadata = {
   title: "Danh mục món ăn",
   description:
     "Khám phá các công thức nấu ăn theo danh mục: món sáng, món nướng, súp, salad, bánh và nhiều hơn nữa.",
+  alternates: {
+    canonical: "/categories",
+  },
+  openGraph: {
+    title: "Danh mục món ăn · Culinary Blog",
+    description:
+      "Khám phá các công thức nấu ăn theo danh mục: món sáng, món nướng, súp, salad, bánh và nhiều hơn nữa.",
+    type: "website",
+    url: "/categories",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Danh mục món ăn · Culinary Blog",
+    description:
+      "Khám phá các công thức nấu ăn theo danh mục: món sáng, món nướng, súp, salad, bánh và nhiều hơn nữa.",
+  },
 };
 
 export const revalidate = 3600;

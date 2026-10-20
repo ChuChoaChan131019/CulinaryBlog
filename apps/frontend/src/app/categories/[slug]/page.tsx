@@ -7,10 +7,32 @@ import { CategoryVisual } from "../category-visual";
 import { RecipeCard } from "@/components/RecipeCard";
 import { ApiError, apiGet } from "@/lib/api";
 
-export const metadata: Metadata = {
-  title: "Danh mục công thức",
-  description: "Khám phá các công thức đã được xuất bản trong từng danh mục của Culinary Blog.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const canonical = `/categories/${encodeURIComponent(slug)}`;
+  return {
+    title: "Danh mục công thức",
+    description: "Khám phá các công thức đã được xuất bản trong từng danh mục của Culinary Blog.",
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      title: "Danh mục công thức · Culinary Blog",
+      description: "Khám phá các công thức đã được xuất bản trong từng danh mục của Culinary Blog.",
+      type: "website",
+      url: canonical,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Danh mục công thức · Culinary Blog",
+      description: "Khám phá các công thức đã được xuất bản trong từng danh mục của Culinary Blog.",
+    },
+  };
+}
 
 export const revalidate = 600;
 

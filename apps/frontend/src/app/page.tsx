@@ -1,4 +1,5 @@
 import type { CategoryDto, PagedResponse, RecipeSummaryDto } from "@culinary/shared";
+import type { Metadata } from "next";
 import { ArrowRight, Search, Timer } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,6 +9,15 @@ import { apiGet, apiGetPaged } from "@/lib/api";
 
 // Trang chủ là nội dung công khai, đổi theo nhịp đăng bài -> ISR 5 phút thay vì SSR mỗi request.
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    url: "/",
+  },
+};
 
 // Backend có thể chưa chạy (dev local, CI build) — trang chủ vẫn phải render được,
 // nên mỗi lệnh gọi tự chịu lỗi và trả về giá trị rỗng.

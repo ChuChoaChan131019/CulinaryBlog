@@ -11,6 +11,22 @@ export const metadata: Metadata = {
   title: "Tất cả công thức",
   description:
     "Khám phá, lọc theo danh mục và sắp xếp các công thức nấu ăn đã được chia sẻ trên Culinary Blog.",
+  alternates: {
+    canonical: "/recipes",
+  },
+  openGraph: {
+    title: "Tất cả công thức · Culinary Blog",
+    description:
+      "Khám phá, lọc theo danh mục và sắp xếp các công thức nấu ăn đã được chia sẻ trên Culinary Blog.",
+    type: "website",
+    url: "/recipes",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tất cả công thức · Culinary Blog",
+    description:
+      "Khám phá, lọc theo danh mục và sắp xếp các công thức nấu ăn đã được chia sẻ trên Culinary Blog.",
+  },
 };
 
 const PAGE_SIZE = 12;
