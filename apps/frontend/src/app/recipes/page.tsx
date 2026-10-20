@@ -3,9 +3,13 @@ import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { ErrorState } from "@/components/ErrorState";
+import type { ErrorStateInfo } from "@/lib/error-state";
+import { toErrorStateInfo } from "@/lib/error-state";
 import { RecipeCard } from "@/components/RecipeCard";
 import { Pagination } from "@/components/Pagination";
 import { apiGet, apiGetPaged } from "@/lib/api";
+import { RecipesLoading } from "./loading";
 
 export const metadata: Metadata = {
   title: "Tất cả công thức",
@@ -106,7 +110,7 @@ export default async function RecipesPage({ searchParams }: RecipesPageProps) {
 
 async function RecipeList({ query }: { query: RecipeListQuery }) {
   const result = await loadRecipeList(query);
-  if (!result) return <RecipesError />;
+  if ("error" in result) return <RecipesError error={result.error} />;
 
   const { categories, recipes } = result;
   const hasFilters = Boolean(query.categoryId) || query.sort !== DEFAULT_SORT;
@@ -180,8 +184,8 @@ async function loadRecipeList(query: RecipeListQuery) {
     ]);
 
     return { categories, recipes };
-  } catch {
-    return null;
+  } catch (error) {
+    return { error: toErrorStateInfo(error) };
   }
 }
 
@@ -251,50 +255,13 @@ function RecipeFilters({
   );
 }
 
-function RecipesLoading() {
+function RecipesError({ error }: { error?: ErrorStateInfo }) {
   return (
-    <div className="mt-8" aria-busy="true" aria-label="Đang tải danh sách công thức">
-      <span className="sr-only">Đang tải danh sách công thức…</span>
-      <div className="grid animate-pulse gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]">
-        <div className="h-16 rounded-xl bg-secondary" />
-        <div className="h-16 rounded-xl bg-secondary" />
-        <div className="h-11 rounded-xl bg-secondary lg:w-28" />
-        <div className="hidden h-11 rounded-xl bg-secondary lg:block lg:w-28" />
-      </div>
-      <div className="mt-10 grid animate-pulse gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }, (_, index) => (
-          <div key={index} className="overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="aspect-[4/3] bg-secondary" />
-            <div className="space-y-3 p-5">
-              <div className="h-3 w-24 rounded bg-secondary" />
-              <div className="h-6 w-4/5 rounded bg-secondary" />
-              <div className="h-4 w-full rounded bg-secondary" />
-              <div className="h-4 w-2/3 rounded bg-secondary" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function RecipesError() {
-  return (
-    <div
-      role="alert"
-      className="mt-10 rounded-2xl border border-destructive/30 bg-card px-6 py-12 text-center"
-    >
-      <p className="font-display text-2xl">Không thể tải danh sách công thức</p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        Máy chủ đang bận hoặc kết nối bị gián đoạn. Vui lòng thử tải lại trang.
-      </p>
-      <Link
-        href="/recipes"
-        className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-      >
-        <RotateCcw className="h-4 w-4" aria-hidden />
-        Tải lại
-      </Link>
-    </div>
+    <ErrorState
+      error={error}
+      title="Không thể tải danh sách công thức"
+      retryHref="/recipes"
+      className="mt-10"
+    />
   );
 }

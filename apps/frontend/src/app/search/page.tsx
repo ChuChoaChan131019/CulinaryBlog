@@ -6,9 +6,11 @@ import type {
 import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ErrorState } from "@/components/ErrorState";
 import { RecipeCard } from "@/components/RecipeCard";
 import { Pagination } from "@/components/Pagination";
 import { apiGet, apiGetPaged } from "@/lib/api";
+import { toErrorStateInfo, type ErrorStateInfo } from "@/lib/error-state";
 import {
   buildSearchHref,
   normalizeSearchQuery,
@@ -112,7 +114,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           ) : query.termState === "invalid" ? (
             <SearchPrompt message="Từ khóa phải có ít nhất một chữ cái hoặc chữ số." />
           ) : result.error ? (
-            <SearchError />
+            <SearchError error={result.error} />
           ) : (
             <SearchResults query={query} result={result.recipes} hasActiveFilters={hasActiveFilters} />
           )}
@@ -150,7 +152,7 @@ async function loadSearch(query: SearchPageQuery) {
   return {
     categories: categoriesResult.status === "fulfilled" ? categoriesResult.value : [],
     recipes: recipesResult.status === "fulfilled" ? recipesResult.value : emptyResult(query.page),
-    error: recipesResult.status === "rejected",
+    error: recipesResult.status === "rejected" ? toErrorStateInfo(recipesResult.reason) : undefined,
     categoriesError: categoriesResult.status === "rejected",
   };
 }
@@ -354,13 +356,13 @@ function SearchPrompt({ message }: { message: string }) {
   );
 }
 
-function SearchError() {
+function SearchError({ error }: { error: ErrorStateInfo }) {
   return (
-    <div role="alert" className="mt-2 rounded-2xl border border-destructive/30 bg-card px-6 py-16 text-center">
-      <p className="font-display text-xl">Không thể tải kết quả tìm kiếm</p>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Máy chủ đang bận hoặc kết nối bị gián đoạn. Vui lòng thử lại.
-      </p>
-    </div>
+    <ErrorState
+      error={error}
+      title="Không thể tải kết quả tìm kiếm"
+      retryHref="/search"
+      className="mt-2"
+    />
   );
 }

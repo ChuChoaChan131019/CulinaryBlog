@@ -1,9 +1,10 @@
 import type { RecipeSummaryDto } from "@culinary/shared";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { ErrorState } from "@/components/ErrorState";
 import { ApiError, apiGet, apiGetPaged } from "@/lib/api";
+import { toErrorStateInfo, type ErrorStateInfo } from "@/lib/error-state";
 import RecipeDetailClient from "./RecipeDetailClient";
 import type { RecipeDetail, RelatedRecipe } from "./recipe-detail.helpers";
 import { buildRecipeJsonLd, getRecipeImageUrl, serializeJsonLd } from "./recipe-json-ld";
@@ -16,7 +17,7 @@ type PublicRecipeResult =
   | { kind: "ok"; recipe: RecipeDetail }
   | { kind: "forbidden" }
   | { kind: "not-found" }
-  | { kind: "error" };
+  | { kind: "error"; error: ErrorStateInfo };
 
 const loadPublicRecipe = cache(async (slug: string): Promise<PublicRecipeResult> => {
   try {
@@ -29,7 +30,7 @@ const loadPublicRecipe = cache(async (slug: string): Promise<PublicRecipeResult>
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return { kind: "not-found" };
     if (error instanceof ApiError && error.status === 403) return { kind: "forbidden" };
-    return { kind: "error" };
+    return { kind: "error", error: toErrorStateInfo(error) };
   }
 });
 
@@ -86,7 +87,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
 
   if (result.kind === "not-found") notFound();
 
-  if (result.kind === "error") return <RecipeDetailError slug={slug} />;
+  if (result.kind === "error") return <RecipeDetailError slug={slug} error={result.error} />;
 
   const initialRecipe = result.kind === "ok" ? result.recipe : null;
   const initialRelated = initialRecipe ? await loadRelatedRecipes(initialRecipe) : [];
@@ -123,28 +124,15 @@ async function loadRelatedRecipes(recipe: RecipeDetail): Promise<RelatedRecipe[]
   }
 }
 
-function RecipeDetailError({ slug }: { slug: string }) {
+function RecipeDetailError({ slug, error }: { slug: string; error: ErrorStateInfo }) {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Công thức</p>
-      <h1 className="mt-3 font-display text-3xl">Không thể tải công thức</h1>
-      <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-        Máy chủ đang bận hoặc kết nối bị gián đoạn. Vui lòng thử lại.
-      </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <Link
-          href={`/recipes/${encodeURIComponent(slug)}`}
-          className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          Tải lại
-        </Link>
-        <Link
-          href="/recipes"
-          className="rounded-full border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
-        >
-          Về danh sách
-        </Link>
-      </div>
-    </div>
+    <ErrorState
+      error={error}
+      title="Không thể tải công thức"
+      retryHref={`/recipes/${encodeURIComponent(slug)}`}
+      homeHref="/recipes"
+      homeLabel="Về danh sách"
+      className="mx-auto mt-16 max-w-3xl px-4 sm:px-6"
+    />
   );
 }
