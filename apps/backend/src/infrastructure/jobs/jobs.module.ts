@@ -13,6 +13,8 @@ import { SitemapGenerationQueue } from './sitemap-generation.queue';
 import { SitemapGeneratorService } from './sitemap-generator.service';
 import { WelcomeEmailProcessor } from './welcome-email.processor';
 import { WelcomeEmailQueue } from './welcome-email.queue';
+import { PasswordResetEmailProcessor } from './password-reset-email.processor';
+import { PasswordResetEmailQueue } from './password-reset-email.queue';
 
 @Module({
   imports: [ConfigModule, MailModule, MediaModule],
@@ -28,7 +30,9 @@ import { WelcomeEmailQueue } from './welcome-email.queue';
     SitemapGeneratorService,
     WelcomeEmailQueue,
     WelcomeEmailProcessor,
+    PasswordResetEmailQueue,
+    PasswordResetEmailProcessor,
   ],
-  exports: [RecipeImageCleanupQueue, RecipeImageResizeQueue, WelcomeEmailQueue],
+  exports: [RecipeImageCleanupQueue, RecipeImageResizeQueue, WelcomeEmailQueue, PasswordResetEmailQueue],
 })
 export class JobsModule {}
