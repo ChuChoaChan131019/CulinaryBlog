@@ -20,6 +20,20 @@ import {
 export const metadata: Metadata = {
   title: "Tìm kiếm công thức",
   description: "Tìm kiếm công thức nấu ăn bằng từ khóa, danh mục, độ khó và thời gian nấu.",
+  alternates: {
+    canonical: "/search",
+  },
+  openGraph: {
+    title: "Tìm kiếm công thức · Culinary Blog",
+    description: "Tìm kiếm công thức nấu ăn bằng từ khóa, danh mục, độ khó và thời gian nấu.",
+    type: "website",
+    url: "/search",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tìm kiếm công thức · Culinary Blog",
+    description: "Tìm kiếm công thức nấu ăn bằng từ khóa, danh mục, độ khó và thời gian nấu.",
+  },
 };
 
 interface SearchPageProps {

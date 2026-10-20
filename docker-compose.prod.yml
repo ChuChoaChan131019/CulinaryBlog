@@ -56,12 +56,14 @@ services:
         # đọc NEXT_PUBLIC_API_URL của .env (giá trị đó dành cho dev chạy frontend trực tiếp ở host).
         NEXT_PUBLIC_API_URL: https://localhost/api
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        NEXT_PUBLIC_SITE_URL: https://localhost
     restart: unless-stopped
     env_file: .env
     environment:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_SITE_URL: https://localhost
       AUTH_URL: https://localhost
       # Server Components gọi API bằng mạng nội bộ Compose; trình duyệt vẫn dùng
       # NEXT_PUBLIC_API_URL được build thành https://localhost/api.
