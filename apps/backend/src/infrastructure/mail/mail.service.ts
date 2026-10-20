@@ -8,6 +8,12 @@ export interface WelcomeEmailInput {
   appUrl: string;
 }
 
+export interface PasswordResetEmailInput {
+  to: string;
+  displayName: string;
+  resetUrl: string;
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -52,6 +58,31 @@ export class MailService {
     });
 
     this.logger.log(`Welcome email sent to ${maskEmail(input.to)}`);
+  }
+
+  async sendPasswordResetEmail(input: PasswordResetEmailInput): Promise<void> {
+    const safeDisplayName = escapeHtml(input.displayName);
+    const safeResetUrl = escapeHtml(input.resetUrl);
+
+    await this.transporter.sendMail({
+      from: this.from,
+      to: input.to,
+      subject: 'Đặt lại mật khẩu Culinary Blog',
+      text: `Chào ${input.displayName}, nhấp vào liên kết sau để đặt lại mật khẩu: ${input.resetUrl}`,
+      html: [
+        '<!doctype html>',
+        '<html lang="vi">',
+        '<body>',
+        `<h1>Xin chào ${safeDisplayName},</h1>`,
+        '<p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản Culinary Blog của bạn.</p>',
+        `<p><a href="${safeResetUrl}">Đặt lại mật khẩu</a></p>`,
+        '<p>Liên kết này có hiệu lực trong vòng 30 phút. Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>',
+        '</body>',
+        '</html>',
+      ].join(''),
+    });
+
+    this.logger.log(`Password reset email sent to ${maskEmail(input.to)}`);
   }
 }
 

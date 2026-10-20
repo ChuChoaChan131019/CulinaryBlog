@@ -16,7 +16,7 @@ const localStorageStub = {
 vi.stubGlobal('window', { localStorage: localStorageStub, addEventListener() {}, removeEventListener() {} });
 vi.stubGlobal('localStorage', localStorageStub);
 
-const { apiAuthed, apiAuthedPaged, changePassword, getSession, login, logout, refresh, setSession } = await import('./auth');
+const { apiAuthed, apiAuthedPaged, changePassword, getSession, login, logout, refresh, requestPasswordReset, resetPassword, setSession } = await import('./auth');
 
 const user = { id: 'u1', email: 'a@b.c', displayName: 'A', avatarUrl: null, bio: null, role: 'Author' as const, createdAt: '' };
 
@@ -223,6 +223,39 @@ describe('changePassword', () => {
           currentPassword: 'OldPass@123',
           newPassword: 'NewPass@123',
         }),
+      }),
+    );
+    expect(getSession()).toBeNull();
+  });
+});
+
+describe('requestPasswordReset', () => {
+  it('gửi POST /auth/password-reset-requests với email', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 202 }));
+
+    await requestPasswordReset('user@example.com');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/password-reset-requests'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'user@example.com' }),
+      }),
+    );
+  });
+});
+
+describe('resetPassword', () => {
+  it('gửi PUT /auth/password và xóa session khi thành công', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await resetPassword('valid-token', 'NewPass@123');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/password'),
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ token: 'valid-token', newPassword: 'NewPass@123' }),
       }),
     );
     expect(getSession()).toBeNull();

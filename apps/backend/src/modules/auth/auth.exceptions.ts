@@ -79,3 +79,10 @@ export const authPasswordNotSet = () =>
     },
     HttpStatus.UNPROCESSABLE_ENTITY,
   );
+export const authResetTokenInvalid = () =>
+  new BadRequestException({
+    type: 'about:blank',
+    title: 'Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn',
+    status: HttpStatus.BAD_REQUEST,
+    detail: 'AUTH_RESET_TOKEN_INVALID',
+  });

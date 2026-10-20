@@ -27,12 +27,16 @@ import { RefreshTokenResult } from './commands/refresh-token.handler';
 import { RegisterCommand } from './commands/register.command';
 import { RegisterResult } from './commands/register.handler';
 import { UpdateProfileCommand } from './commands/update-profile.command';
+import { RequestPasswordResetCommand } from './commands/request-password-reset.command';
+import { ResetPasswordCommand } from './commands/reset-password.command';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { MeResult } from './queries/get-me.handler';
 import { GetMeQuery } from './queries/get-me.query';
 
@@ -68,6 +72,23 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   google(@Body() dto: GoogleLoginDto, @Ip() ip: string): Promise<TokenPair> {
     return this.commandBus.execute(new GoogleLoginCommand(dto.idToken, ip));
+  }
+
+  @Post('password-reset-requests')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Yêu cầu gửi email đặt lại mật khẩu' })
+  @ApiResponse({ status: HttpStatus.ACCEPTED, description: 'Yêu cầu đã được tiếp nhận' })
+  requestPasswordReset(@Body() dto: RequestPasswordResetDto): Promise<void> {
+    return this.commandBus.execute(new RequestPasswordResetCommand(dto.email));
+  }
+
+  @Put('password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Đặt lại mật khẩu bằng token từ email' })
+  @ApiResponse({ status: HttpStatus.NO_CONTENT, description: 'Đặt lại mật khẩu thành công' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Token không hợp lệ hoặc đã hết hạn' })
+  resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
+    return this.commandBus.execute(new ResetPasswordCommand(dto.token, dto.newPassword));
   }
 
   @Post('logout')

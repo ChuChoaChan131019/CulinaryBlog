@@ -81,8 +81,8 @@ export async function parse<T>(res: Response): Promise<T> {
     const problem = await res.json().catch(() => null);
     throw new ApiError(res.status, problem as ProblemDetails | null);
   }
-  // 204 No Content (logout) không có body để parse.
-  return res.status === 204 ? (undefined as T) : unwrap<T>(await res.json());
+  // 204 No Content (logout) và 202 Accepted không có body để parse.
+  return res.status === 204 || res.status === 202 ? (undefined as T) : unwrap<T>(await res.json());
 }
 
 /** Giữ nguyên cả `data` và `meta` của response phân trang. */

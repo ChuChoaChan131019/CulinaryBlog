@@ -280,3 +280,20 @@ export async function changePassword(currentPassword: string, newPassword: strin
   });
   setSession(null);
 }
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await post<void>('/auth/password-reset-requests', { email });
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  const res = await fetch(`${baseUrl}/auth/password`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  await parse<void>(res);
+  setSession(null);
+}

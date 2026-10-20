@@ -13,6 +13,8 @@ import { RefreshTokenHandler } from './commands/refresh-token.handler';
 import { RegisterHandler } from './commands/register.handler';
 import { UpdateProfileHandler } from './commands/update-profile.handler';
 import { ChangePasswordHandler } from './commands/change-password.handler';
+import { RequestPasswordResetHandler } from './commands/request-password-reset.handler';
+import { ResetPasswordHandler } from './commands/reset-password.handler';
 import { GetMeHandler } from './queries/get-me.handler';
 
 const CommandHandlers = [
@@ -23,6 +25,8 @@ const CommandHandlers = [
   LogoutHandler,
   UpdateProfileHandler,
   ChangePasswordHandler,
+  RequestPasswordResetHandler,
+  ResetPasswordHandler,
 ];
 const QueryHandlers = [GetMeHandler];
 

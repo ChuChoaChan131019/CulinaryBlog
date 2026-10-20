@@ -76,7 +76,15 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
             </div>
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Mật khẩu</span>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="block text-sm font-medium">Mật khẩu</span>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Quên mật khẩu?
+              </Link>
+            </div>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
