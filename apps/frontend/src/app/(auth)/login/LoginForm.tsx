@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { GoogleButton } from '@/components/GoogleButton';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { login, loginWithGoogle, useSession } from '@/lib/auth';
 import { loginErrorMessage } from './helpers';
 
@@ -43,72 +47,74 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
         Đăng nhập vào gian bếp Culinary Blog của bạn.
       </p>
 
-      <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
-        <form
-          className="space-y-4"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setSubmitting(true);
-            setError(null);
-            try {
-              await login(email, password);
-              router.push(redirectTo);
-            } catch (err) {
-              setError(loginErrorMessage(err));
-            } finally {
-              setSubmitting(false);
-            }
-          }}
-        >
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Email</span>
-            <div className="relative">
-              <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="field py-3 pl-10"
-                placeholder="you@example.com"
-              />
-            </div>
-          </label>
-          <label className="block">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="block text-sm font-medium">Mật khẩu</span>
-              <Link
-                href="/forgot-password"
-                className="text-xs font-medium text-primary hover:underline"
-              >
-                Quên mật khẩu?
-              </Link>
-            </div>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="field py-3 pl-10"
-                placeholder="••••••••"
-              />
-            </div>
-          </label>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+      <Card className="mt-8 rounded-2xl border border-border py-0 shadow-card">
+        <CardContent className="p-6 sm:p-8">
+          <form
+            className="space-y-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setSubmitting(true);
+              setError(null);
+              try {
+                await login(email, password);
+                router.push(redirectTo);
+              } catch (err) {
+                setError(loginErrorMessage(err));
+              } finally {
+                setSubmitting(false);
+              }
+            }}
           >
-            {submitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
-          </button>
-        </form>
+            <div>
+              <Label htmlFor="email" className="mb-1.5">
+                Email
+              </Label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-auto py-3 pl-10"
+                  placeholder="you@example.com"
+                />
+              </div>
+            </div>
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <Label htmlFor="password">Mật khẩu</Label>
+                <Link href="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+                  Quên mật khẩu?
+                </Link>
+              </div>
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-auto py-3 pl-10"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="h-12 w-full rounded-full px-6 text-sm font-semibold"
+            >
+              {submitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
+            </Button>
+          </form>
 
         <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-muted-foreground">
           <span className="h-px flex-1 bg-border" />
@@ -123,7 +129,8 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
             Tạo tài khoản
           </Link>
         </p>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
