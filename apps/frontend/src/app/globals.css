@@ -10,7 +10,7 @@
  * Culinary Blog design system — port từ Templates/src/styles.css.
  * Nền neutral ấm, primary amber, accent emerald. Toàn bộ màu là token oklch:
  * không hardcode màu trong component, luôn đi qua token ở đây.
- * Hai biến font trỏ tới next/font (xem app/layout.tsx) thay vì tên font trực tiếp.
+ * Font được nạp runtime theo mockup trong app/layout.tsx, có fallback hệ thống.
  */
 
 @theme inline {
@@ -53,6 +53,8 @@
 }
 
 :root {
+  --font-fraunces: "Fraunces";
+  --font-sans-vi: "Plus Jakarta Sans";
   --radius: 0.875rem;
   --background: oklch(0.99 0.008 85);
   --foreground: oklch(0.24 0.02 60);
