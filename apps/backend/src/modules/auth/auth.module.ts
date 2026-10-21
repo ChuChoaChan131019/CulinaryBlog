@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { JobsModule } from '../../infrastructure/jobs/jobs.module';
 import { AuthController } from './auth.controller';
 import { GoogleLoginHandler } from './commands/google-login.handler';
@@ -16,6 +17,8 @@ import { ChangePasswordHandler } from './commands/change-password.handler';
 import { RequestPasswordResetHandler } from './commands/request-password-reset.handler';
 import { ResetPasswordHandler } from './commands/reset-password.handler';
 import { GetMeHandler } from './queries/get-me.handler';
+import { GetUsersHandler } from './queries/get-users.handler';
+import { UsersController } from './users.controller';
 
 const CommandHandlers = [
   RegisterHandler,
@@ -28,7 +31,7 @@ const CommandHandlers = [
   RequestPasswordResetHandler,
   ResetPasswordHandler,
 ];
-const QueryHandlers = [GetMeHandler];
+const QueryHandlers = [GetMeHandler, GetUsersHandler];
 
 @Module({
   imports: [
@@ -42,7 +45,7 @@ const QueryHandlers = [GetMeHandler];
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [...CommandHandlers, ...QueryHandlers, JwtAuthGuard, ThrottlerGuard],
+  controllers: [AuthController, UsersController],
+  providers: [...CommandHandlers, ...QueryHandlers, JwtAuthGuard, RolesGuard, ThrottlerGuard],
 })
 export class AuthModule {}

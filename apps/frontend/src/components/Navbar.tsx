@@ -1,6 +1,6 @@
 "use client";
 
-import { ChefHat, ClipboardList, LogIn, Menu, PenLine, Search, X } from "lucide-react";
+import { ChefHat, ClipboardList, LogIn, Menu, PenLine, Search, Users, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -20,6 +20,7 @@ export function Navbar() {
   const pathname = usePathname();
   const session = useSession();
   const showRecipeDashboard = canManageRecipes(session?.user.role);
+  const isAdmin = session?.user.role === 'Admin';
 
   // Link "/" chỉ active khi đúng trang chủ; các link khác active cả trang con.
   const isActive = (href: string) =>
@@ -67,6 +68,9 @@ export function Navbar() {
               <ClipboardList className="h-4 w-4" aria-hidden />
               Quản lý công thức
             </Link>
+          )}
+          {isAdmin && (
+            <Link href="/dashboard/users" aria-current={isActive('/dashboard/users') ? 'page' : undefined} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors hover:text-foreground ${isActive('/dashboard/users') ? 'bg-primary-soft text-foreground' : 'text-muted-foreground'}`}><Users className="h-4 w-4" aria-hidden />Người dùng</Link>
           )}
         </nav>
 
@@ -146,6 +150,7 @@ export function Navbar() {
                 Quản lý công thức
               </Link>
             )}
+            {isAdmin && <Link href="/dashboard/users" onClick={() => setOpen(false)} aria-current={isActive('/dashboard/users') ? 'page' : undefined} className="rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground">Quản lý người dùng</Link>}
             <Link
               href="/dashboard/recipes/new"
               onClick={() => setOpen(false)}
