@@ -22,7 +22,15 @@ export class GetUsersHandler implements IQueryHandler<GetUsersQuery, PagedResult
       .offset((params.page - 1) * params.pageSize);
     const totalPages = Math.ceil(totalCount / params.pageSize);
     return {
-      items: rows.map((user) => ({ ...user, roles: [user.role], createdAt: user.createdAt.toISOString() })),
+      items: rows.map((user) => ({
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        roles: [user.role],
+        isActive: user.isActive,
+        createdAt: user.createdAt.toISOString(),
+      })),
       totalCount, page: params.page, pageSize: params.pageSize, totalPages,
       hasNextPage: params.page < totalPages, hasPreviousPage: params.page > 1,
     };
