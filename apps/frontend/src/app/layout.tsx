@@ -3,6 +3,7 @@ import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { Footer } from "@/components/Footer";
 import { Navbar } from "@/components/Navbar";
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 // Subset vietnamese là bắt buộc — thiếu nó thì dấu tiếng Việt rơi sang font fallback.
 // Mockup dùng DM Sans cho body, nhưng DM Sans không có subset vietnamese (latin-ext của nó
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <Footer />
+        <Toaster />
       </body>
     </html>
   );
