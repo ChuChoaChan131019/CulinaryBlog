@@ -1,6 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { PagedResult, UserListItemDto, UserListSort } from '@culinary/shared';
+import type { PagedResult, UserListItemDto, UserListSort } from '@culinary/shared';
 import { SQL, and, asc, count, desc, eq, ilike, or } from 'drizzle-orm';
 import { DATABASE_CONNECTION, Database } from '../../../infrastructure/database/database.module';
 import { users } from '../../../infrastructure/database/schema';

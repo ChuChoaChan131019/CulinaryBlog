@@ -1,6 +1,15 @@
 import { Transform, Type } from 'class-transformer';
 import { IsEnum, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { USER_LIST_SORT_VALUES, UserListSort, UserRole } from '@culinary/shared';
+import type { UserListSort, UserRole } from '@culinary/shared';
+
+const USER_LIST_SORT_VALUES: UserListSort[] = [
+  'createdAt',
+  '-createdAt',
+  'email',
+  '-email',
+  'displayName',
+  '-displayName',
+];
 
 export class GetUsersQueryDto {
   @Type(() => Number)
