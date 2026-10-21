@@ -34,7 +34,10 @@ export function UsersDashboard() {
     try { const result = await apiAuthedPaged<UserListItemDto>(`/users?${params}`); if (id === request.current) { setState({ users: result.data, meta: result.meta }); setError(null); } }
     catch (cause) { if (id === request.current) setError(cause instanceof ApiError && cause.status === 403 ? 'Bạn không có quyền quản lý người dùng.' : 'Không thể tải danh sách người dùng.'); }
   }, [page, q, role, sort]);
-  useEffect(() => { void load(); return () => { request.current += 1; }; }, [load]);
+  useEffect(() => {
+    void Promise.resolve().then(load);
+    return () => { request.current += 1; };
+  }, [load]);
   function submit(event: React.FormEvent) { event.preventDefault(); router.push(href(1, query.trim(), role, sort)); }
   const meta = state?.meta;
   return <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">

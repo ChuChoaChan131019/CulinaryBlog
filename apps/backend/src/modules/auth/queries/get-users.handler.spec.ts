@@ -1,4 +1,3 @@
-import { describe, expect, it, vi } from 'vitest';
 import { GetUsersHandler } from './get-users.handler';
 import { GetUsersQuery } from './get-users.query';
 
@@ -16,7 +15,7 @@ describe('GetUsersHandler', () => {
       refreshToken: 'must-never-leave-database',
     };
     const db = {
-      select: vi
+      select: jest
         .fn()
         .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([{ totalCount: 1 }]) }) })
         .mockReturnValueOnce({
