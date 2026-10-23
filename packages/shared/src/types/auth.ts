@@ -21,6 +21,11 @@ export interface UserListItemDto {
   createdAt: string;
 }
 
+export interface UpdateUserRequest {
+  isActive?: boolean;
+  role?: UserRole;
+}
+
 export const USER_LIST_SORT_VALUES = [
   'createdAt',
   '-createdAt',

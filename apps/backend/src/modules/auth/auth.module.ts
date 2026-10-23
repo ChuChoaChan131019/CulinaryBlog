@@ -16,6 +16,7 @@ import { UpdateProfileHandler } from './commands/update-profile.handler';
 import { ChangePasswordHandler } from './commands/change-password.handler';
 import { RequestPasswordResetHandler } from './commands/request-password-reset.handler';
 import { ResetPasswordHandler } from './commands/reset-password.handler';
+import { UpdateUserHandler } from './commands/update-user.handler';
 import { GetMeHandler } from './queries/get-me.handler';
 import { GetUsersHandler } from './queries/get-users.handler';
 import { UsersController } from './users.controller';
@@ -30,6 +31,7 @@ const CommandHandlers = [
   ChangePasswordHandler,
   RequestPasswordResetHandler,
   ResetPasswordHandler,
+  UpdateUserHandler,
 ];
 const QueryHandlers = [GetMeHandler, GetUsersHandler];
 
