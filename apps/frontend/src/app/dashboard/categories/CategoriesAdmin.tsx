@@ -119,7 +119,13 @@ export function CategoriesAdmin() {
   }
 
   async function handleDelete(category: CategoryDto) {
-    if (!window.confirm(`Xoá danh mục “${category.name}”?`)) return;
+    if (
+      !window.confirm(
+        `Ẩn danh mục “${category.name}”? Danh mục sẽ được chuyển trạng thái ẩn (status = false) chứ không xoá vĩnh viễn khỏi CSDL.`,
+      )
+    ) {
+      return;
+    }
 
     setError(null);
     setNotice(null);
@@ -129,9 +135,9 @@ export function CategoriesAdmin() {
         method: 'DELETE',
       });
       if (await reloadCategories()) {
-        showNotice(`Đã xoá “${category.name}”.`);
+        showNotice(`Đã ẩn danh mục “${category.name}” (set status = false trong CSDL).`);
       } else {
-        setError(`Đã xoá “${category.name}”, nhưng không thể tải lại danh sách.`);
+        setError(`Đã ẩn “${category.name}”, nhưng không thể tải lại danh sách.`);
       }
     } catch (requestError) {
       setError(categoryErrorMessage(requestError));

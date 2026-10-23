@@ -83,9 +83,13 @@ describe('DeleteCategoryHandler', () => {
       handler.execute(new DeleteCategoryCommand(categoryId, admin)),
     ).resolves.toBeUndefined();
 
-    expect(updateSet).toHaveBeenCalledWith(
-      expect.objectContaining({ isDeleted: true, updatedAt: expect.any(Date) }),
-    );
+      expect(updateSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: false,
+          isDeleted: true,
+          updatedAt: expect.any(Date),
+        }),
+      );
     expect(categoryFor).toHaveBeenCalledWith('update');
     expect(cache.delete).toHaveBeenCalledWith('categories:all');
   });

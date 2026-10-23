@@ -8,6 +8,7 @@ export interface CategoryDto {
   description: string | null;
   imageUrl: string | null;
   recipeCount: number;
+  status?: boolean;
 }
 
 export interface CategoryDetailDto {
@@ -26,6 +27,7 @@ export interface UpdateCategoryRequest {
   description?: string | null;
   imageUrl?: string | null;
   orderIndex?: number;
+  status?: boolean;
 }
 
 export interface CreatedCategoryDto {
@@ -42,4 +44,5 @@ export interface UpdatedCategoryDto {
   description: string | null;
   imageUrl: string | null;
   orderIndex: number;
+  status?: boolean;
 }

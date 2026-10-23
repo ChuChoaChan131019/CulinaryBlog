@@ -58,6 +58,7 @@ export class CreateCategoryHandler implements ICommandHandler<
             slug,
             description,
             imageUrl,
+            status: true,
           })
           .returning({
             id: categories.id,

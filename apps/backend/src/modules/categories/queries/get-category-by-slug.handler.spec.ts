@@ -11,6 +11,7 @@ describe('GetCategoryBySlugHandler', () => {
     description: 'Công thức Việt Nam',
     imageUrl: null,
     recipeCount: 2,
+    status: true,
   };
   const recipes: PagedResult<RecipeSummaryDto> = {
     items: [],

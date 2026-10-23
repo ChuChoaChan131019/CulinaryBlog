@@ -11,6 +11,7 @@ describe('GetCategoriesHandler', () => {
       description: null,
       imageUrl: null,
       recipeCount: 2,
+      status: true,
     },
   ];
 

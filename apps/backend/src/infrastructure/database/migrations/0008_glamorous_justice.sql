@@ -1,0 +1,1 @@
+ALTER TABLE "categories" ADD COLUMN "status" boolean DEFAULT true NOT NULL;

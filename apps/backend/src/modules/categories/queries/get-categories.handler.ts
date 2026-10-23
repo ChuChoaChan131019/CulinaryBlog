@@ -30,6 +30,7 @@ export class GetCategoriesHandler implements IQueryHandler<GetCategoriesQuery, C
         description: categories.description,
         imageUrl: categories.imageUrl,
         recipeCount: sql<number>`count(${recipes.id})::int`,
+        status: categories.status,
       })
       .from(categories)
       .leftJoin(
@@ -40,13 +41,14 @@ export class GetCategoriesHandler implements IQueryHandler<GetCategoriesQuery, C
           eq(recipes.isDeleted, false),
         ),
       )
-      .where(eq(categories.isDeleted, false))
+      .where(and(eq(categories.isDeleted, false), eq(categories.status, true)))
       .groupBy(
         categories.id,
         categories.name,
         categories.slug,
         categories.description,
         categories.imageUrl,
+        categories.status,
       )
       .orderBy(asc(categories.name));
 

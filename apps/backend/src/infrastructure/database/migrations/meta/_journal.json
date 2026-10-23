@@ -57,6 +57,13 @@
       "when": 1792501800555,
       "tag": "0007_tense_skrulls",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792773855912,
+      "tag": "0008_glamorous_justice",
+      "breakpoints": true
     }
   ]
 }

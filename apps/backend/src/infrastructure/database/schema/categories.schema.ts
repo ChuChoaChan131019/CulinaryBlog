@@ -1,4 +1,4 @@
-import { integer, pgTable, text, varchar } from 'drizzle-orm/pg-core';
+import { boolean, integer, pgTable, text, varchar } from 'drizzle-orm/pg-core';
 import { baseColumns } from './base.columns';
 
 export const categories = pgTable('categories', {
@@ -8,6 +8,7 @@ export const categories = pgTable('categories', {
   description: text('description'),
   imageUrl: varchar('image_url', { length: 500 }),
   orderIndex: integer('order_index').notNull().default(0),
+  status: boolean('status').notNull().default(true),
 });
 
 export type Category = typeof categories.$inferSelect;

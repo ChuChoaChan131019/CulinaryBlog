@@ -33,6 +33,7 @@ export class GetCategoryBySlugHandler implements IQueryHandler<
         description: categories.description,
         imageUrl: categories.imageUrl,
         recipeCount: sql<number>`count(${recipes.id})::int`,
+        status: categories.status,
       })
       .from(categories)
       .leftJoin(
@@ -44,7 +45,11 @@ export class GetCategoryBySlugHandler implements IQueryHandler<
         ),
       )
       .where(
-        and(eq(categories.slug, query.slug), eq(categories.isDeleted, false)),
+        and(
+          eq(categories.slug, query.slug),
+          eq(categories.isDeleted, false),
+          eq(categories.status, true),
+        ),
       )
       .groupBy(
         categories.id,
@@ -52,6 +57,7 @@ export class GetCategoryBySlugHandler implements IQueryHandler<
         categories.slug,
         categories.description,
         categories.imageUrl,
+        categories.status,
       );
 
     if (!category) {

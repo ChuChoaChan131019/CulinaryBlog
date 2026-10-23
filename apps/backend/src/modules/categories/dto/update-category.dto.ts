@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsInt,
   IsString,
   IsUrl,
@@ -36,4 +37,8 @@ export class UpdateCategoryDto {
   @IsInt()
   @Min(0)
   orderIndex?: number;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsBoolean()
+  status?: boolean;
 }

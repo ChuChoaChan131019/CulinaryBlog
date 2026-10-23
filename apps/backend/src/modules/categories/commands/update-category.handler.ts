@@ -53,7 +53,7 @@ export class UpdateCategoryHandler implements ICommandHandler<
       changes,
       'orderIndex',
     );
-
+    const hasStatus = Object.prototype.hasOwnProperty.call(changes, 'status');
     try {
       const [updated] = await this.db
         .update(categories)
@@ -71,7 +71,11 @@ export class UpdateCategoryHandler implements ICommandHandler<
                 ? null
                 : changes.imageUrl?.trim() ?? null,
           }),
-          ...(hasOrderIndex && { orderIndex: changes.orderIndex }),
+        ...(hasOrderIndex && { orderIndex: changes.orderIndex }),
+        ...(hasStatus && {
+          status: Boolean(changes.status),
+          isDeleted: changes.status === false,
+        }),
           updatedAt: new Date(),
           rowVersion: sql`${categories.rowVersion} + 1`,
         })
@@ -88,6 +92,7 @@ export class UpdateCategoryHandler implements ICommandHandler<
           description: categories.description,
           imageUrl: categories.imageUrl,
           orderIndex: categories.orderIndex,
+          status: categories.status,
         });
 
       if (!updated) {

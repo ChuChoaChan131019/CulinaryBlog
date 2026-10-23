@@ -82,6 +82,7 @@ export class DeleteCategoryHandler implements ICommandHandler<
       const [deleted] = await tx
         .update(categories)
         .set({
+          status: false,
           isDeleted: true,
           updatedAt: new Date(),
           rowVersion: sql`${categories.rowVersion} + 1`,

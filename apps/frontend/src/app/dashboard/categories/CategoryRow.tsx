@@ -62,9 +62,15 @@ export function CategoryRow({ category, busy, onSave, onDelete }: CategoryRowPro
             {nameError}
           </p>
         )}
-        <p className="text-xs text-muted-foreground sm:col-span-2">
-          /{category.slug} · {category.recipeCount} công thức đã xuất bản
-        </p>
+        <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+          <p className="text-xs text-muted-foreground">
+            /{category.slug} · {category.recipeCount} công thức đã xuất bản
+          </p>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            {category.status !== false ? 'Hoạt động (status = true)' : 'Đã ẩn (status = false)'}
+          </span>
+        </div>
       </div>
 
       <div className="flex gap-2">
@@ -84,11 +90,12 @@ export function CategoryRow({ category, busy, onSave, onDelete }: CategoryRowPro
           type="button"
           disabled={busy}
           onClick={() => void onDelete()}
-          aria-label={`Xoá ${category.name}`}
+          aria-label={`Ẩn danh mục ${category.name}`}
+          title="Ẩn danh mục (set status = false trong CSDL)"
           className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Trash2 className="h-4 w-4" aria-hidden />
-          <span className="sr-only">Xoá</span>
+          <span className="sr-only">Ẩn danh mục</span>
         </button>
       </div>
     </article>

@@ -18,6 +18,7 @@ describe('UpdateCategoryHandler', () => {
     description: null,
     imageUrl: 'https://example.com/mon-viet.jpg',
     orderIndex: 2,
+    status: true,
   };
 
   function buildHandler(result: unknown[] = [updated]) {
