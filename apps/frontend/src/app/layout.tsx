@@ -5,9 +5,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
 // Subset vietnamese là bắt buộc — thiếu nó thì dấu tiếng Việt rơi sang font fallback.
-// Mockup dùng DM Sans cho body, nhưng DM Sans không có subset vietnamese (latin-ext của nó
-// thiếu hẳn khối U+1EA0–1EF1: ạ, ế, ộ, ư…) nên mọi chữ có dấu sẽ nhảy font. Plus Jakarta Sans
-// là grotesque hình học cùng chất, có subset vietnamese đầy đủ -> thay cho DM Sans.
+// Sử dụng font Roboto cho phần thân: font chữ tròn, ấm, dễ đọc với độ nét cao và hỗ trợ đầy đủ tiếng Việt.
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.PUBLIC_SITE_URL ||
@@ -44,7 +42,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body className="flex min-h-full flex-col">
         <a

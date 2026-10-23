@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('next/font/google', () => ({
   Fraunces: () => ({ variable: '--font-fraunces' }),
   Plus_Jakarta_Sans: () => ({ variable: '--font-sans-vi' }),
+  Roboto: () => ({ variable: '--font-sans-vi' }),
 }));
 import { metadata as layoutMetadata } from './layout';
 import { metadata as homeMetadata } from './page';
