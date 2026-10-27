@@ -87,6 +87,22 @@ jobs:
         if: matrix.docker
         run: docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d --wait
 
+      - name: Chạy migration PostgreSQL
+        if: matrix.docker
+        run: |
+          set -a
+          . ./.env
+          set +a
+          pnpm db:migrate
+
+      - name: Kiểm thử tìm kiếm với PostgreSQL thật
+        if: matrix.docker
+        run: |
+          set -a
+          . ./.env
+          set +a
+          pnpm --filter backend exec jest --config test/jest-e2e.json --runInBand test/search.e2e-spec.ts
+
       - name: Kiểm tra /health/ready qua Nginx
         if: matrix.docker
         run: curl -fsk https://localhost/api/v1/health/ready
