@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PagedResult, JobQueueItem, JobQueueState, JobQueueSummary } from '@culinary/shared';
+import type { PagedResult, JobQueueItem, JobQueueState, JobQueueSummary } from '@culinary/shared';
 import { PasswordResetEmailQueue } from './password-reset-email.queue';
 import { RecipeImageCleanupQueue } from './recipe-image-cleanup.queue';
 import { RecipeImageResizeQueue } from './recipe-image-resize.queue';

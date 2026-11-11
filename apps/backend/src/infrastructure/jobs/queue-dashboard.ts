@@ -1,6 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Job, JobType, Queue } from 'bullmq';
-import { JobQueueItem, JobQueueState, JobQueueSummary } from '@culinary/shared';
+import type { JobQueueItem, JobQueueState, JobQueueSummary } from '@culinary/shared';
 
 export interface JobQueueDashboard {
   readonly queueName: string;
