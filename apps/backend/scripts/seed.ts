@@ -4,12 +4,15 @@ import { Pool } from 'pg';
 import {
   categories,
   recipeIngredients,
+  recipeImages,
   recipes,
   recipeSteps,
   users,
 } from '../src/infrastructure/database/schema';
 import { seedRecipeImages } from './seed-recipe-images';
 import { SAMPLE_RECIPES } from './recipe-sample-catalog';
+import { SAMPLE_RECIPE_DETAILS } from './recipe-sample-details';
+import { SAMPLE_RECIPE_GUIDANCE } from './recipe-sample-guidance';
 
 const AUTHOR_EMAIL = 'lab2.seed.author@example.invalid';
 const AUTHOR_DISPLAY_NAME = 'Sample Author';
@@ -19,99 +22,41 @@ const CATEGORY_NAMES = [
   'Món súp', 'Món cơm', 'Món mì', 'Món bún', 'Món bánh',
   'Món tráng miệng', 'Món ăn sáng', 'Món ăn nhẹ', 'Món gia đình', 'Món ngày lễ',
 ] as const;
-const INGREDIENTS = [
-  'thịt gà', 'thịt bò', 'thịt heo', 'cá', 'tôm', 'đậu hũ', 'trứng',
-  'gạo', 'mì', 'bún', 'cà rốt', 'khoai tây', 'cà chua', 'hành tây',
-  'hành lá', 'tỏi', 'gừng', 'nấm', 'bắp cải', 'rau cải', 'bí đỏ',
-  'đậu que', 'ớt chuông', 'nước mắm', 'muối', 'đường', 'tiêu',
-  'dầu ăn', 'nước tương', 'rau thơm',
-] as const;
-const STEP_TITLES = [
-  'Chuẩn bị nguyên liệu', 'Sơ chế', 'Ướp gia vị', 'Làm nóng chảo',
-  'Chế biến phần chính', 'Nêm nếm', 'Hoàn thiện và trình bày',
-] as const;
-
 function categorySlug(index: number): string {
   return `category-${String(index + 1).padStart(2, '0')}`;
-}
-
-function sampleCategoryIndex(title: string): number {
-  const normalized = title
-    .toLocaleLowerCase('vi')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[đ]/g, 'd');
-
-  if (/^(che |sua chua |banh flan|tiramisu)/.test(normalized)) return 15;
-  if (/(pizza|lasagna|mi y)/.test(normalized)) return 2;
-  if (/(sushi|kimchi|bibimbap|gyoza|pad thai|katsu)/.test(normalized)) return 1;
-  if (normalized.startsWith('canh ')) return 9;
-  if (normalized.startsWith('sup ')) return 10;
-  if (normalized.startsWith('lau ')) return 18;
-  if (normalized.startsWith('bun ') || normalized.startsWith('pho ') || normalized.startsWith('hu tieu ')) return 13;
-  if (normalized.startsWith('mi ') || normalized.startsWith('mien ') || normalized.startsWith('cao lau')) return 12;
-  if (normalized.startsWith('com ') || normalized.startsWith('xoi ') || normalized.startsWith('chao ')) return 11;
-  if (normalized.startsWith('banh ')) return 14;
-  if (normalized.startsWith('goi ') || normalized.startsWith('nom ')) return 17;
-  if (/(nuong|nem lui)/.test(normalized)) return 4;
-  if (/(hap|banh beo|banh nam)/.test(normalized)) return 5;
-  if (/(xao|rang)/.test(normalized)) return 6;
-  if (/(chien|banh khot)/.test(normalized)) return 7;
-  if (/(kho|rim|om)/.test(normalized)) return 8;
-  return 18;
 }
 
 function legacyCategorySlug(index: number): string {
   return `lab2-category-${String(index + 1).padStart(2, '0')}`;
 }
 
-function randomFor(index: number): () => number {
-  let state = (0x6d2b79f5 + index * 0x9e3779b9) >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let value = Math.imul(state ^ (state >>> 15), 1 | state);
-    value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
+function sampleSlug(index: number): string {
+  return `lab2-recipe-${String(index + 1).padStart(3, '0')}`;
 }
 
-class SeedDataFactory {
-  static recipe(index: number) {
-    const random = randomFor(index);
-    const ingredientCount = 10 + Math.floor(random() * 3);
-    const stepCount = 5 + Math.floor(random() * 3);
-    const shuffled = [...INGREDIENTS];
-    for (let position = shuffled.length - 1; position > 0; position--) {
-      const target = Math.floor(random() * (position + 1));
-      [shuffled[position], shuffled[target]] = [shuffled[target], shuffled[position]];
-    }
-    const title = SAMPLE_RECIPES[index % SAMPLE_RECIPES.length].title;
-    const ingredients = shuffled.slice(0, ingredientCount).map((name, orderIndex) => ({
-      name,
-      quantity: String(1 + Math.floor(random() * 5)),
-      unit: 'phần',
-      orderIndex,
-    }));
-    const steps = STEP_TITLES.slice(0, stepCount).map((stepTitle, stepIndex) => ({
-      stepNumber: stepIndex + 1,
-      title: stepTitle,
-      description: `${stepTitle} cho ${title.toLowerCase()}, dùng nguyên liệu đã chuẩn bị và thực hiện trong ${5 + Math.floor(random() * 16)} phút.`,
-      timerMinutes: 5 + Math.floor(random() * 16),
-    }));
-
-    return {
-      slug: `lab2-recipe-${String(index + 1).padStart(3, '0')}`,
-      title,
-      description: `Công thức mẫu ${title.toLowerCase()} thuộc ${CATEGORY_NAMES[sampleCategoryIndex(title)]}.`,
-      instructions: steps.map((step) => `${step.stepNumber}. ${step.description}`).join('\n'),
-      prepTime: 10 + Math.floor(random() * 21),
-      cookTime: 15 + Math.floor(random() * 46),
-      servings: 2 + Math.floor(random() * 5),
-      difficulty: (['Easy', 'Medium', 'Hard'] as const)[Math.floor(random() * 3)],
-      ingredients,
-      steps,
-    };
+function validateCatalog(): void {
+  if (SAMPLE_RECIPES.length !== 100 || SAMPLE_RECIPE_DETAILS.length !== SAMPLE_RECIPES.length ||
+    Object.keys(SAMPLE_RECIPE_GUIDANCE).length !== SAMPLE_RECIPES.length ||
+    new Set(Object.values(SAMPLE_RECIPE_GUIDANCE)).size !== SAMPLE_RECIPES.length) {
+    throw new Error('Expected exactly 100 sample dishes, details and unique general guidance entries.');
   }
+  SAMPLE_RECIPE_DETAILS.forEach((recipe, index) => {
+    if (recipe.title !== SAMPLE_RECIPES[index].title) throw new Error(`Title mismatch at ${sampleSlug(index)}.`);
+    const guidance = SAMPLE_RECIPE_GUIDANCE[recipe.title]?.trim();
+    if (!guidance || guidance === recipe.description ||
+      guidance === recipe.steps.map((step) => `${step.stepNumber}. ${step.title}: ${step.description}`).join('\n')) {
+      throw new Error(`Missing or duplicated general guidance for ${recipe.title}.`);
+    }
+    if (!CATEGORY_NAMES.includes(recipe.category as typeof CATEGORY_NAMES[number])) {
+      throw new Error(`Unknown category for ${recipe.title}: ${recipe.category}`);
+    }
+    if (!recipe.description.trim() || recipe.ingredients.length < 3 || recipe.steps.length < 4 ||
+      recipe.servings < 1 || recipe.prepTime < 0 || recipe.cookTime < 0 ||
+      recipe.prepTime + recipe.cookTime < 1 ||
+      recipe.ingredients.some((item) => !Number.isFinite(Number(item.quantity)) || Number(item.quantity) <= 0)) {
+      throw new Error(`Incomplete recipe details for ${recipe.title}.`);
+    }
+  });
 }
 
 async function verify(pool: Pool): Promise<void> {
@@ -140,15 +85,18 @@ async function verify(pool: Pool): Promise<void> {
       (SELECT COUNT(*) FROM recipes r
         LEFT JOIN (SELECT recipe_id, COUNT(*) AS n FROM recipe_ingredients WHERE NOT is_deleted GROUP BY recipe_id) i ON i.recipe_id = r.id
         LEFT JOIN (SELECT recipe_id, COUNT(*) AS n FROM recipe_steps WHERE NOT is_deleted GROUP BY recipe_id) s ON s.recipe_id = r.id
-        WHERE NOT r.is_deleted AND (COALESCE(i.n, 0) < 10 OR COALESCE(s.n, 0) < 5)
+        WHERE NOT r.is_deleted AND LEFT(r.slug, 12) = 'lab2-recipe-' AND
+          (COALESCE(i.n, 0) < 3 OR COALESCE(s.n, 0) < 4 OR
+           TRIM(r.description) = '' OR TRIM(r.instructions) = '' OR
+           r.prep_time < 0 OR r.cook_time < 0 OR r.servings < 1)
       ) AS incomplete_recipe_count
   `);
   const result = counts.rows[0];
-  console.log(`Categories: ${result.category_count}; recipes: ${result.recipe_count}; lab 2 recipes: ${result.seeded_recipe_count}; unique sample titles: ${result.unique_seeded_title_count}; recipes with a primary sample image: ${result.seeded_recipe_image_count}; unique sample images: ${result.unique_seeded_image_count}; recipes with fewer than 10 ingredients or 5 steps: ${result.incomplete_recipe_count}`);
+  console.log(`Categories: ${result.category_count}; recipes: ${result.recipe_count}; lab 2 recipes: ${result.seeded_recipe_count}; unique sample titles: ${result.unique_seeded_title_count}; recipes with a primary sample image: ${result.seeded_recipe_image_count}; unique sample images: ${result.unique_seeded_image_count}; incomplete sample recipes: ${result.incomplete_recipe_count}`);
   if (
     Number(result.category_count) < 20 ||
     Number(result.recipe_count) < 100 ||
-    Number(result.seeded_recipe_count) < 100 ||
+    Number(result.seeded_recipe_count) !== SAMPLE_RECIPES.length ||
     Number(result.unique_seeded_title_count) !== SAMPLE_RECIPES.length ||
     Number(result.seeded_recipe_image_count) !== SAMPLE_RECIPES.length ||
     Number(result.unique_seeded_image_count) !== SAMPLE_RECIPES.length ||
@@ -156,9 +104,61 @@ async function verify(pool: Pool): Promise<void> {
   ) {
     throw new Error('Database does not meet the lab 2 data requirements.');
   }
+
+  const db = drizzle(pool);
+  const slugs = SAMPLE_RECIPES.map((_, index) => sampleSlug(index));
+  const recipeRows = await db.select({
+    id: recipes.id, slug: recipes.slug, title: recipes.title,
+    description: recipes.description, instructions: recipes.instructions,
+    prepTime: recipes.prepTime, cookTime: recipes.cookTime,
+    servings: recipes.servings, difficulty: recipes.difficulty,
+    category: categories.name, authorEmail: users.email,
+  }).from(recipes)
+    .innerJoin(categories, eq(recipes.categoryId, categories.id))
+    .innerJoin(users, eq(recipes.authorId, users.id))
+    .where(inArray(recipes.slug, slugs));
+  const recipeIds = recipeRows.map(({ id }) => id);
+  const [ingredientRows, stepRows, imageRows] = await Promise.all([
+    db.select().from(recipeIngredients).where(and(inArray(recipeIngredients.recipeId, recipeIds), eq(recipeIngredients.isDeleted, false))),
+    db.select().from(recipeSteps).where(and(inArray(recipeSteps.recipeId, recipeIds), eq(recipeSteps.isDeleted, false))),
+    db.select().from(recipeImages).where(and(inArray(recipeImages.recipeId, recipeIds), eq(recipeImages.isDeleted, false), eq(recipeImages.isPrimary, true))),
+  ]);
+  const bySlug = new Map(recipeRows.map((recipe) => [recipe.slug, recipe]));
+  for (let index = 0; index < SAMPLE_RECIPE_DETAILS.length; index++) {
+    const expected = SAMPLE_RECIPE_DETAILS[index];
+    const actual = bySlug.get(sampleSlug(index));
+    if (!actual) throw new Error(`Missing sample recipe ${sampleSlug(index)}.`);
+    const expectedInstructions = SAMPLE_RECIPE_GUIDANCE[expected.title];
+    if (actual.authorEmail !== AUTHOR_EMAIL || actual.title !== expected.title ||
+      actual.description !== expected.description || actual.instructions !== expectedInstructions ||
+      actual.prepTime !== expected.prepTime || actual.cookTime !== expected.cookTime ||
+      actual.servings !== expected.servings || actual.difficulty !== expected.difficulty ||
+      actual.category !== expected.category) {
+      throw new Error(`Sample recipe fields differ from catalog: ${actual.slug} (${expected.title}).`);
+    }
+    const ingredients = ingredientRows.filter((item) => item.recipeId === actual.id).sort((a, b) => a.orderIndex - b.orderIndex);
+    if (ingredients.length !== expected.ingredients.length || ingredients.some((item, position) => {
+      const source = expected.ingredients[position];
+      return item.name !== source.name || Number(item.quantity) !== Number(source.quantity) ||
+        item.unit !== source.unit || item.orderIndex !== source.orderIndex;
+    })) throw new Error(`Sample ingredients differ from catalog: ${actual.slug}.`);
+    const steps = stepRows.filter((step) => step.recipeId === actual.id).sort((a, b) => a.stepNumber - b.stepNumber);
+    if (steps.length !== expected.steps.length || steps.some((step, position) => {
+      const source = expected.steps[position];
+      return step.stepNumber !== source.stepNumber || step.title !== source.title ||
+        step.description !== source.description || step.timerMinutes !== source.timerMinutes;
+    })) throw new Error(`Sample steps differ from catalog: ${actual.slug}.`);
+    const images = imageRows.filter((image) => image.recipeId === actual.id);
+    if (images.length !== 1 || images[0].objectKey !== `recipes/${actual.id}/seed-cover.webp` ||
+      images[0].altText !== expected.title) {
+      throw new Error(`Sample image missing or mismatched: ${actual.slug}.`);
+    }
+  }
+  console.log(`Verified exact fields, ingredients, steps and primary image for ${SAMPLE_RECIPE_DETAILS.length} sample recipes.`);
 }
 
 async function main(): Promise<void> {
+  validateCatalog();
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error('DATABASE_URL is required.');
 
@@ -170,8 +170,8 @@ async function main(): Promise<void> {
       return;
     }
 
-    const slugs = Array.from({ length: SAMPLE_RECIPES.length }, (_, index) => SeedDataFactory.recipe(index).slug);
-    const added = await db.transaction(async (tx) => {
+    const slugs = SAMPLE_RECIPES.map((_, index) => sampleSlug(index));
+    const result = await db.transaction(async (tx) => {
       await tx.insert(users).values({
         email: AUTHOR_EMAIL,
         username: 'culinary_seed_author',
@@ -207,45 +207,47 @@ async function main(): Promise<void> {
         throw new Error('Could not find all seed categories.');
       }
       const categoryIds = new Map(categoryRows.map(({ slug, id }) => [slug, id]));
-      const existing = await tx.select({ id: recipes.id, slug: recipes.slug })
+      const existing = await tx.select({ id: recipes.id, slug: recipes.slug, authorId: recipes.authorId })
         .from(recipes)
         .where(inArray(recipes.slug, slugs));
-      const existingRecipes = new Map(existing.map(({ slug, id }) => [slug, id]));
+      const existingRecipes = new Map(existing.map((recipe) => [recipe.slug, recipe]));
       let inserted = 0;
+      let updated = 0;
 
       for (let index = 0; index < SAMPLE_RECIPES.length; index++) {
-        const data = SeedDataFactory.recipe(index);
-        const categoryId = categoryIds.get(categorySlug(sampleCategoryIndex(data.title)));
-        if (!categoryId) throw new Error(`Missing category for ${data.slug}.`);
-        const existingRecipeId = existingRecipes.get(data.slug);
-        if (existingRecipeId) {
+        const data = SAMPLE_RECIPE_DETAILS[index];
+        const slug = sampleSlug(index);
+        const categoryId = categoryIds.get(categorySlug(CATEGORY_NAMES.indexOf(data.category as typeof CATEGORY_NAMES[number])));
+        if (!categoryId) throw new Error(`Missing category for ${slug}.`);
+        const existingRecipe = existingRecipes.get(slug);
+        const instructions = SAMPLE_RECIPE_GUIDANCE[data.title];
+        if (existingRecipe) {
+          if (existingRecipe.authorId !== author.id) throw new Error(`Slug ${slug} belongs to a non-seed author.`);
           await tx.update(recipes)
             .set({
               title: data.title,
               description: data.description,
-              instructions: data.instructions,
+              instructions,
+              prepTime: data.prepTime,
+              cookTime: data.cookTime,
+              servings: data.servings,
+              difficulty: data.difficulty,
               categoryId,
+              updatedAt: new Date(),
             })
-            .where(eq(recipes.id, existingRecipeId));
-          for (const step of data.steps) {
-            await tx.update(recipeSteps)
-              .set({
-                title: step.title,
-                description: step.description,
-                timerMinutes: step.timerMinutes,
-              })
-              .where(and(
-                eq(recipeSteps.recipeId, existingRecipeId),
-                eq(recipeSteps.stepNumber, step.stepNumber),
-              ));
-          }
+            .where(eq(recipes.id, existingRecipe.id));
+          await tx.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, existingRecipe.id));
+          await tx.delete(recipeSteps).where(eq(recipeSteps.recipeId, existingRecipe.id));
+          await tx.insert(recipeIngredients).values(data.ingredients.map((item) => ({ ...item, recipeId: existingRecipe.id })));
+          await tx.insert(recipeSteps).values(data.steps.map((step) => ({ ...step, recipeId: existingRecipe.id })));
+          updated++;
           continue;
         }
         const [recipe] = await tx.insert(recipes).values({
           title: data.title,
-          slug: data.slug,
+          slug,
           description: data.description,
-          instructions: data.instructions,
+          instructions,
           prepTime: data.prepTime,
           cookTime: data.cookTime,
           servings: data.servings,
@@ -271,9 +273,9 @@ async function main(): Promise<void> {
           categories.slug,
           CATEGORY_NAMES.map((_, index) => legacyCategorySlug(index)),
         ));
-      return inserted;
+      return { inserted, updated };
     });
-    console.log(`Inserted ${added} recipes; existing seed display data was synchronized.`);
+    console.log(`Inserted ${result.inserted} recipes; updated ${result.updated} existing seed recipes.`);
     await seedRecipeImages(pool);
     await verify(pool);
   } finally {

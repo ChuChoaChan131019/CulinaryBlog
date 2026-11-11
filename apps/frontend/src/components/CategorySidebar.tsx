@@ -1,9 +1,11 @@
 import type { CategoryDto } from "@culinary/shared";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, ChevronDown, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { ErrorState } from "@/components/ErrorState";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import type { ErrorStateInfo } from "@/lib/error-state";
+
+const HOME_CATEGORY_LIMIT = 9;
 
 interface CategorySidebarProps {
   categories: CategoryDto[];
@@ -34,7 +36,7 @@ export function CategorySidebar({
   ) : (
     <nav aria-label="Danh mục công thức">
       <ul className="space-y-1">
-        {categories.map((category) => {
+        {categories.slice(0, HOME_CATEGORY_LIMIT).map((category) => {
           const isActive = category.id === activeCategoryId;
 
           return (
@@ -58,14 +60,18 @@ export function CategorySidebar({
                   <CategoryIcon name={category.name} className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1 truncate font-medium">{category.name}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {category.recipeCount} công thức
-                </span>
               </Link>
             </li>
           );
         })}
       </ul>
+      <Link
+        href="/categories"
+        className="mt-4 inline-flex items-center gap-1.5 px-3 text-sm font-medium text-primary hover:underline"
+      >
+        Xem tất cả danh mục
+        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      </Link>
     </nav>
   );
 

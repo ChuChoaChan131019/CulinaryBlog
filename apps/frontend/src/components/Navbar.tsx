@@ -22,7 +22,6 @@ export function Navbar() {
   const pathname = usePathname();
   const session = useSession();
   const showRecipeDashboard = canManageRecipes(session?.user.role);
-  const isAdmin = session?.user.role === 'Admin';
 
   useEffect(() => {
     if (!profileMenu) return;
@@ -85,9 +84,6 @@ export function Navbar() {
             >
               Tổng quan
             </Link>
-          )}
-          {isAdmin && (
-            <Link href="/dashboard/users" aria-current={isActive('/dashboard/users') ? 'page' : undefined} className={`rounded-full px-4 py-2 text-sm font-medium transition-colors hover:text-foreground ${isActive('/dashboard/users') ? 'bg-primary-soft text-foreground' : 'text-muted-foreground'}`}>Người dùng</Link>
           )}
         </nav>
 
@@ -199,7 +195,6 @@ export function Navbar() {
                 Tổng quan
               </Link>
             )}
-            {isAdmin && <Link href="/dashboard/users" onClick={() => setOpen(false)} aria-current={isActive('/dashboard/users') ? 'page' : undefined} className="rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground">Quản lý người dùng</Link>}
             <Link
               href="/dashboard/recipes/new"
               onClick={() => setOpen(false)}
