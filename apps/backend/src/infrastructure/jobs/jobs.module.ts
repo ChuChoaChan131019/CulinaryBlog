@@ -15,6 +15,7 @@ import { WelcomeEmailProcessor } from './welcome-email.processor';
 import { WelcomeEmailQueue } from './welcome-email.queue';
 import { PasswordResetEmailProcessor } from './password-reset-email.processor';
 import { PasswordResetEmailQueue } from './password-reset-email.queue';
+import { JobsDashboardService } from './jobs-dashboard.service';
 
 @Module({
   imports: [ConfigModule, MailModule, MediaModule],
@@ -32,7 +33,14 @@ import { PasswordResetEmailQueue } from './password-reset-email.queue';
     WelcomeEmailProcessor,
     PasswordResetEmailQueue,
     PasswordResetEmailProcessor,
+    JobsDashboardService,
   ],
-  exports: [RecipeImageCleanupQueue, RecipeImageResizeQueue, WelcomeEmailQueue, PasswordResetEmailQueue],
+  exports: [
+    RecipeImageCleanupQueue,
+    RecipeImageResizeQueue,
+    WelcomeEmailQueue,
+    PasswordResetEmailQueue,
+    JobsDashboardService,
+  ],
 })
 export class JobsModule {}

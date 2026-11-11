@@ -1,7 +1,7 @@
 'use client';
 
 import type { RecipeSummaryDto, RecipeStatus, UserListItemDto } from '@culinary/shared';
-import { Archive, BookOpen, FilePenLine, Plus, Tags, Users } from 'lucide-react';
+import { Activity, Archive, BookOpen, FilePenLine, Plus, Tags, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { apiAuthedPaged, useSession } from '@/lib/auth';
@@ -69,6 +69,7 @@ export function DashboardOverview() {
         {role === 'Admin' && <>
           <Link href="/dashboard/categories" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-5 text-sm font-semibold shadow-card hover:bg-secondary"><Tags className="h-5 w-5 text-primary" />Quản lý danh mục</Link>
           <Link href="/dashboard/users" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-5 text-sm font-semibold shadow-card hover:bg-secondary"><Users className="h-5 w-5 text-primary" />Người dùng {userCount === null ? '' : `(${userCount})`}</Link>
+          <Link href="/dashboard/jobs" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-5 text-sm font-semibold shadow-card hover:bg-secondary"><Activity className="h-5 w-5 text-primary" />Quản lý tác vụ nền</Link>
         </>}
       </div>
     </main>

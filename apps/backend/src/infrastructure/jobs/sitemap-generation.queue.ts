@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
+import { createQueueDashboard, JobQueueDashboard } from './queue-dashboard';
 
 export const SITEMAP_GENERATION_QUEUE = 'sitemap-generation';
 export const SITEMAP_SCHEDULER_ID = 'daily-sitemap-generation';
@@ -26,6 +27,7 @@ export const SITEMAP_JOB_OPTIONS = {
 export class SitemapGenerationQueue implements OnModuleInit, OnModuleDestroy {
   private readonly connection: Redis;
   private readonly queue: Queue<SitemapGenerationJob>;
+  readonly dashboard: JobQueueDashboard;
 
   constructor(config: ConfigService) {
     this.connection = new Redis(config.getOrThrow<string>('REDIS_URL'), {
@@ -34,6 +36,7 @@ export class SitemapGenerationQueue implements OnModuleInit, OnModuleDestroy {
     this.queue = new Queue<SitemapGenerationJob>(SITEMAP_GENERATION_QUEUE, {
       connection: this.connection,
     });
+    this.dashboard = createQueueDashboard(SITEMAP_GENERATION_QUEUE, this.queue);
   }
 
   async onModuleInit(): Promise<void> {
