@@ -9,6 +9,7 @@ import { CacheModule } from './infrastructure/cache/cache.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { LoggingModule } from './infrastructure/logging/logging.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { AdminJobsModule } from './infrastructure/jobs/admin-jobs.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { HealthModule } from './modules/health/health.module';
 import { MediaModule } from './modules/media/media.module';
@@ -38,6 +39,7 @@ const rootEnvFile = [
     DatabaseModule,
     CacheModule,
     AuthModule,
+    AdminJobsModule,
     CategoriesModule,
     RecipesModule,
     MediaModule,

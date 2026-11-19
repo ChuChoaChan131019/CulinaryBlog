@@ -71,7 +71,12 @@ export function getImageUrl(
 }
 
 export function formatIngredient(ingredient: RecipeIngredient): string {
-  const amount = [ingredient.quantity, ingredient.unit].filter(Boolean).join(" ");
+  const quantity = ingredient.quantity?.trim();
+  const number = quantity ? Number(quantity) : NaN;
+  const formattedQuantity = Number.isFinite(number)
+    ? new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 3, useGrouping: false }).format(number)
+    : quantity;
+  const amount = [formattedQuantity, ingredient.unit].filter(Boolean).join(" ");
   const notes = ingredient.notes?.trim();
   return [amount, ingredient.name, notes ? `(${notes})` : ""].filter(Boolean).join(" ");
 }

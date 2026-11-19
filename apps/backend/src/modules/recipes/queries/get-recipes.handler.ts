@@ -12,6 +12,7 @@ import {
   inArray,
   lte,
   or,
+  sql,
 } from 'drizzle-orm';
 import { CacheService } from '../../../infrastructure/cache/cache.service';
 import {
@@ -51,12 +52,14 @@ export class GetRecipesHandler implements IQueryHandler<
         detail: 'Bạn cần đăng nhập để xem công thức của mình',
       });
     }
-    const cacheKey = this.createCacheKey(query);
-    const cached = await this.cache.get<PagedResult<RecipeSummaryDto>>(
-      cacheKey,
-      CACHE_TTL_SECONDS,
-    );
-    if (cached !== null) return cached;
+    const cacheKey = params.sort === 'random' ? null : this.createCacheKey(query);
+    if (cacheKey) {
+      const cached = await this.cache.get<PagedResult<RecipeSummaryDto>>(
+        cacheKey,
+        CACHE_TTL_SECONDS,
+      );
+      if (cached !== null) return cached;
+    }
 
     const where = and(...this.createConditions(query));
     const [{ totalCount }] = await this.db
@@ -159,7 +162,7 @@ export class GetRecipesHandler implements IQueryHandler<
       hasPreviousPage: params.page > 1,
     };
 
-    await this.cache.set(cacheKey, result, CACHE_TTL_SECONDS);
+    if (cacheKey) await this.cache.set(cacheKey, result, CACHE_TTL_SECONDS);
     return result;
   }
 
@@ -202,6 +205,7 @@ export class GetRecipesHandler implements IQueryHandler<
   }
 
   private createOrder(sort: RecipeSort): SQL {
+    if (sort === 'random') return sql`random()`;
     const descending = sort.startsWith('-');
     const field = descending ? sort.slice(1) : sort;
     const column =

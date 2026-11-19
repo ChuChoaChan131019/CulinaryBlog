@@ -72,7 +72,7 @@ export function RecipeCard({ recipe }: { recipe: RecipeSummaryDto }) {
           <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{recipe.excerpt}</p>
         )}
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-4 text-sm">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-border pt-4 text-sm">
           <span className="flex min-w-0 items-center gap-2">
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-soft text-[11px] font-semibold text-foreground">
               {initials(recipe.author.displayName)}
@@ -81,7 +81,7 @@ export function RecipeCard({ recipe }: { recipe: RecipeSummaryDto }) {
           </span>
           <span className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
             <Clock className="h-4 w-4" aria-hidden />
-            {totalTime} phút
+            Nấu: {recipe.cookTimeMinutes} phút · Tổng: {totalTime} phút
           </span>
         </div>
       </div>

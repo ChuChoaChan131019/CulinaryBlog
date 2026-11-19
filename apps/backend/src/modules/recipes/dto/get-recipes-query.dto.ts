@@ -25,6 +25,7 @@ export enum RecipeListStatus {
 export const RECIPE_SORT_VALUES = [
   'createdAt',
   '-createdAt',
+  'random',
   'title',
   '-title',
   'cookTime',

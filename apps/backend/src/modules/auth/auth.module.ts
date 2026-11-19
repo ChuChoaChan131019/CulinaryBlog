@@ -49,5 +49,6 @@ const QueryHandlers = [GetMeHandler, GetUsersHandler];
   ],
   controllers: [AuthController, UsersController],
   providers: [...CommandHandlers, ...QueryHandlers, JwtAuthGuard, RolesGuard, ThrottlerGuard],
+  exports: [JwtModule, JwtAuthGuard, RolesGuard],
 })
 export class AuthModule {}

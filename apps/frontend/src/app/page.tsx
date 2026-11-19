@@ -4,9 +4,9 @@ import { ArrowRight, Search, Timer } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { CategorySidebar } from "@/components/CategorySidebar";
-import { RecipeCard } from "@/components/RecipeCard";
 import { apiGet, apiGetPaged } from "@/lib/api";
 import { toErrorStateInfo, type ErrorStateInfo } from "@/lib/error-state";
+import { RandomRecipeGrid } from "./RandomRecipeGrid";
 
 // Trang chủ là nội dung công khai, dùng ISR theo TTL của module categories trong SRS.
 export const revalidate = 3600;
@@ -165,18 +165,14 @@ export default async function HomePage() {
 
           <section className="min-w-0">
             <SectionHead
-              title="Công thức mới nhất"
-              subtitle="Những món vừa được đăng trên blog."
+              title="Gợi ý công thức"
+              subtitle="Khám phá những món ăn khác nhau mỗi lần ghé thăm."
               href="/recipes"
               linkLabel="Tất cả công thức"
             />
 
             {featured.data.length > 0 ? (
-              <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {featured.data.map((r) => (
-                  <RecipeCard key={r.id} recipe={r} />
-                ))}
-              </div>
+              <RandomRecipeGrid initialRecipes={featured.data} />
             ) : (
               <p className="mt-8 rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
                 Chưa có công thức nào được đăng. Hãy là người đầu tiên chia sẻ món của bạn.
