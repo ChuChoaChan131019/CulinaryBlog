@@ -15,7 +15,7 @@ import { SAMPLE_RECIPE_DETAILS } from './recipe-sample-details';
 import { SAMPLE_RECIPE_GUIDANCE } from './recipe-sample-guidance';
 
 const AUTHOR_EMAIL = 'lab2.seed.author@example.invalid';
-const AUTHOR_DISPLAY_NAME = 'Trần Thị Phương Trang, Đinh Thị Mai Lành, Trần Nguyễn Tuấn Anh, Trần Minh Tài';
+const AUTHOR_DISPLAY_NAME = 'Trần Thị Phương Trang';
 const CATEGORY_NAMES = [
   'Món Việt', 'Món Á', 'Món Âu', 'Món chay', 'Món nướng',
   'Món hấp', 'Món xào', 'Món chiên', 'Món kho', 'Món canh',
