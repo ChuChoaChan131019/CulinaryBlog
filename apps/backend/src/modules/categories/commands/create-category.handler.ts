@@ -8,6 +8,11 @@ import {
   Database,
 } from '../../../infrastructure/database/database.module';
 import { categories } from '../../../infrastructure/database/schema';
+import {
+  categorySlugBase,
+  nextCategorySlugSuffix,
+  withCategorySlugSuffix,
+} from '../category-slug';
 import { CreateCategoryCommand } from './create-category.command';
 
 const CATEGORY_CACHE_KEY = 'categories:all';
@@ -34,11 +39,11 @@ export class CreateCategoryHandler implements ICommandHandler<
 
     if (existingName) throw this.nameExists();
 
-    const base = this.slugify(name) || 'danh-muc';
+    const base = categorySlugBase(name);
     let suffix = 0;
 
     while (true) {
-      const slug = this.uniqueSlug(base, suffix);
+      const slug = withCategorySlugSuffix(base, suffix);
       const [existingSlug] = await this.db
         .select({ id: categories.id })
         .from(categories)
@@ -46,7 +51,7 @@ export class CreateCategoryHandler implements ICommandHandler<
         .limit(1);
 
       if (existingSlug) {
-        suffix = this.nextSuffix(suffix);
+        suffix = nextCategorySlugSuffix(suffix);
         continue;
       }
 
@@ -71,7 +76,7 @@ export class CreateCategoryHandler implements ICommandHandler<
         return created;
       } catch (error: unknown) {
         if (this.isUniqueViolation(error, 'slug')) {
-          suffix = this.nextSuffix(suffix);
+          suffix = nextCategorySlugSuffix(suffix);
           continue;
         }
         if (this.isUniqueViolation(error, 'name') || this.isUniqueViolation(error)) {
@@ -80,27 +85,6 @@ export class CreateCategoryHandler implements ICommandHandler<
         throw error;
       }
     }
-  }
-
-  private uniqueSlug(base: string, suffix: number): string {
-    const suffixText = suffix === 0 ? '' : `-${suffix}`;
-    return `${base.slice(0, 120 - suffixText.length)}${suffixText}`;
-  }
-
-  private nextSuffix(suffix: number): number {
-    return suffix === 0 ? 2 : suffix + 1;
-  }
-
-  private slugify(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D')
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
   }
 
   private isUniqueViolation(error: unknown, field?: 'name' | 'slug'): boolean {
