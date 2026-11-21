@@ -9,6 +9,7 @@ import {
   recipeSteps,
   users,
 } from '../src/infrastructure/database/schema';
+import { categorySlugBase } from '../src/modules/categories/category-slug';
 import { seedRecipeImages } from './seed-recipe-images';
 import { SAMPLE_RECIPES } from './recipe-sample-catalog';
 import { SAMPLE_RECIPE_DETAILS } from './recipe-sample-details';
@@ -23,6 +24,11 @@ const CATEGORY_NAMES = [
   'Món tráng miệng', 'Món ăn sáng', 'Món ăn nhẹ', 'Món gia đình', 'Món ngày lễ',
 ] as const;
 function categorySlug(index: number): string {
+  return categorySlugBase(CATEGORY_NAMES[index]);
+}
+
+/** Slug dạng `category-NN` do các bản seed trước sinh ra, đổi sang slug theo tên khi seed lại. */
+function previousCategorySlug(index: number): string {
   return `category-${String(index + 1).padStart(2, '0')}`;
 }
 
@@ -190,6 +196,11 @@ async function main(): Promise<void> {
         description: `Danh mục ${name.toLowerCase()}.`,
         orderIndex: index,
       }));
+      for (let index = 0; index < CATEGORY_NAMES.length; index++) {
+        await tx.update(categories)
+          .set({ slug: categorySlug(index) })
+          .where(eq(categories.slug, previousCategorySlug(index)));
+      }
       await tx.insert(categories).values(categorySeed).onConflictDoNothing();
       for (const category of categorySeed) {
         await tx.update(categories)
@@ -267,12 +278,17 @@ async function main(): Promise<void> {
         })));
         inserted++;
       }
-      await tx.update(categories)
-        .set({ isDeleted: true })
+      const legacyCategories = await tx.select({ id: categories.id, name: categories.name })
+        .from(categories)
         .where(inArray(
           categories.slug,
           CATEGORY_NAMES.map((_, index) => legacyCategorySlug(index)),
         ));
+      for (const category of legacyCategories) {
+        await tx.update(categories)
+          .set({ isDeleted: true, slug: categorySlugBase(category.name) })
+          .where(eq(categories.id, category.id));
+      }
       return { inserted, updated };
     });
     console.log(`Inserted ${result.inserted} recipes; updated ${result.updated} existing seed recipes.`);
