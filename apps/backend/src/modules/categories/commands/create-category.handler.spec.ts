@@ -96,7 +96,7 @@ describe('CreateCategoryHandler', () => {
   it('trả conflict khi insert gặp tranh chấp tên đồng thời', async () => {
     const nameError = Object.assign(new Error('duplicate key'), {
       code: '23505',
-      constraint: 'categories_name_unique',
+      constraint: 'categories_name_active_unique',
     });
     const { db } = buildDb([[], []], [nameError]);
     const handler = new CreateCategoryHandler(db as never, buildCache());

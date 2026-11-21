@@ -1,7 +1,7 @@
 import { ConflictException, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreatedCategoryDto } from '@culinary/shared';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { CacheService } from '../../../infrastructure/cache/cache.service';
 import {
   DATABASE_CONNECTION,
@@ -29,7 +29,7 @@ export class CreateCategoryHandler implements ICommandHandler<
     const [existingName] = await this.db
       .select({ id: categories.id })
       .from(categories)
-      .where(eq(categories.name, name))
+      .where(and(eq(categories.name, name), eq(categories.isDeleted, false)))
       .limit(1);
 
     if (existingName) throw this.nameExists();
